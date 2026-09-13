@@ -16,11 +16,6 @@ struct Execution {
   double price{};
 };
 
-struct PriceRange {
-  std::string date{};
-  double minPrice{};
-  double maxPrice{};
-};
 
 class State {
 public:
@@ -40,9 +35,7 @@ public:
     executions.push_back({date, qty, price});
   }
 
-  void addPriceRange(const std::string&date, double minPrice, double maxPrice) {
-    priceRange.push_back({date, minPrice, maxPrice});
-  }
+
 
   const std::vector<Equity> &getEquityCurve() const { return equityCurve; }
 
@@ -53,7 +46,6 @@ private:
   int netQty{};
   std::vector<Equity> equityCurve;
   std::vector<Execution> executions;
-  std::vector<PriceRange> priceRange;
 };
 
 #endif
