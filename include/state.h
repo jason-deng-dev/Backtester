@@ -1,6 +1,7 @@
 #ifndef STATE_H
 #define STATE_H
 
+
 #include <string>
 #include <vector>
 
@@ -21,7 +22,9 @@ struct Execution {
 
 class State {
 public:
-  State(double cash_, int netQty_) : cash{cash_}, netQty{netQty_} {}
+  State(double cash_, int netQty_) : cash{cash_}, netQty{netQty_} {
+    barSnapshots.push_back({"before trading", cash, netQty_, 0, 0});
+  }
 
   double getCash() const { return cash; }
   int getNetQty() const { return netQty; }
