@@ -78,6 +78,7 @@ struct PositionRecord{time openTime, closeTime; int direction; double entryNotio
 - win rate 
   - for Per-Positon
   - for Per-Exit 
+  - pnl == 0 is its own BreakEven bucket, counted as neither a win nor a loss
 - avg win/loss 
   - Average win/loss = (total profit from winning/losing trades) / (number of winning/losing trades)
   - win/loss ratio = Average win / Average loss
@@ -103,7 +104,7 @@ struct PositionRecord{time openTime, closeTime; int direction; double entryNotio
     - var = Σ (r_t - mean_r)² / (n - 1)
     - std = √var
   - risk-free 
-    - rf_daily = rf_annual / 252
+    - rf_daily = (1 + rf_annual)^(1/252) - 1
   - annualize
     - sharpe = (mean_r - rf_daily) / std * √252
 - time-in-market

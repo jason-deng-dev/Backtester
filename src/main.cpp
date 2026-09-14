@@ -25,6 +25,7 @@ int main() {
   std::cout << "cash after:" << st.getCash() << " shares after:" << st.getNetQty() << '\n';
 
   an.captureState(st);
+  an.report();
   // an.reportPositions();
   // an.reportExits();
 

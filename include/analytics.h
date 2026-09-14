@@ -11,11 +11,20 @@
 #include <string>
 #include <vector>
 
-struct Execursion {
+// outcome of a closed trade
+enum class Outcome { Loss, BreakEven, Win };
+
+inline Outcome classify(double pnl) {
+  if (pnl > 0)
+    return Outcome::Win;
+  return pnl < 0 ? Outcome::Loss : Outcome::BreakEven;
+}
+
+struct Excursion {
   double maeNorm;
   double mfeNorm;
   bool isLong;
-  bool win;
+  Outcome outcome;
 };
 
 struct OpenPosition {
@@ -51,21 +60,15 @@ struct PositionRecord {
   double entryNotional, exitNotional, pnl, mae, mfe;
 };
 
-struct PositionsInfo {
-  // trade-close metrics
+// trade-close metrics, shared by per-position and per-exit accounting
+// grossProfit >= 0, grossLoss <= 0 (it is a sum of losing pnl)
+// numLoss = num - numWin - numBreakEven
+struct TradeStats {
   int numWin{0};
+  int numBreakEven{0};
   int num{0};
   double grossProfit{0};
   double grossLoss{0};
-};
-
-struct ExitsInfo {
-  int numWin{0};
-  int num{0};
-  double grossProfit{0};
-  double grossLoss{0};
-
-
 };
 
 struct SharpeInfo {
@@ -79,12 +82,12 @@ struct SharpeInfo {
 
 
 class Analytics {
-  std::vector<Execursion> excursions;
+  std::vector<Excursion> excursions;
   std::vector<ExitRecord> exitRecords;
   std::vector<PositionRecord> positionRecords;
 
-  PositionsInfo positionInfo{};
-  ExitsInfo exitsInfo{};
+  TradeStats positionInfo{};
+  TradeStats exitsInfo{};
 
   // max drawdown
   double maxDrawDown{0};
@@ -115,6 +118,9 @@ public:
 
   void computeExitRecords();
 
+  // runs every compute step, then prints the full metric rundown
+  void report(std::ostream &os = std::cout);
+
   void reportPositions() {
     std::cout << "size:" << positionRecords.size() << '\n';
     for (auto &p : positionRecords) {
@@ -132,6 +138,14 @@ public:
                 << " Exit price:" << e.exitPrice << " pnl:" << e.pnl << '\n';
     }
   }
+
+private:
+  void reportCurve(std::ostream &os, bool sharpeOk);
+
+  void reportTradeStats(std::ostream &os, const std::string &label,
+                        const TradeStats &info);
+
+  void reportExcursions(std::ostream &os);
 };
 
 #endif
