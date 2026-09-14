@@ -3,6 +3,7 @@
 
 #include "state.h"
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <limits>
@@ -24,6 +25,9 @@ struct EpisodeState {
   double entryNotional{0};
   double exitNotional{0};
   double avgEntryPrice{0};
+  double mae {std::numeric_limits<double>::infinity()};
+  double mfe {-std::numeric_limits<double>::infinity()};
+
 };
 
 
@@ -39,7 +43,7 @@ struct ExitRecord {
 struct PositionRecord {
   std::string openTime, closeTime;
   int direction;
-  double entryNotional, exitNotional, pnl;
+  double entryNotional, exitNotional, pnl, mae, mfe;
 };
 
 struct TradeCloseInfo {

@@ -49,18 +49,30 @@ void Analytics::recordInfo(const std::vector<Execution> &executions,
 
     prevEquity = equity;
 
-    if (date == executions[executionIndex].date) {
+    while (executionIndex < executions.size() &&
+           date == executions[executionIndex].date) {
       handleExecution(executions[executionIndex], episodeState);
       ++executionIndex;
     }
+
+    if (netQty != 0) {
+      const double favorable =
+          netQty * ((netQty > 0 ? maxPrice : minPrice) - episodeState.avgEntryPrice);
+      const double adverse =
+          netQty * ((netQty > 0 ? minPrice : maxPrice) - episodeState.avgEntryPrice);
+
+      episodeState.mfe = std::max(favorable, episodeState.mfe);
+      episodeState.mae = std::min(adverse, episodeState.mae);
+    }
+
   }
 }
 
 void Analytics::handleExecution(const Execution &execution,
                                 EpisodeState &episodeState) {
   auto [date, qty, price] = execution;
-  auto &[openTime, openPositions, entryNotional, exitNotional, avgEntryPrice] =
-      episodeState;
+  auto &[openTime, openPositions, entryNotional, exitNotional, avgEntryPrice,
+         mae, mfe] = episodeState;
 
   int remaining = std::abs(qty);
   const bool wasOpen = !openPositions.empty();
@@ -90,9 +102,12 @@ void Analytics::handleExecution(const Execution &execution,
   // this fill drained the position: episode closes
   if (wasOpen && openPositions.empty()) {
     positionRecords.push_back({openTime, date, posDir, entryNotional,
-                               exitNotional, exitNotional - entryNotional});
+                               exitNotional, exitNotional - entryNotional, mae,
+                               mfe});
     entryNotional = 0;
     exitNotional = 0;
+    mae = std::numeric_limits<double>::infinity();
+    mfe = -std::numeric_limits<double>::infinity();
   }
 
   // remainder opens a new position or extends the current one
