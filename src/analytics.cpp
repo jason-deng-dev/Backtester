@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <iterator>
 #include <numeric>
 
 bool Analytics::captureState(const State &state) {
@@ -56,17 +57,18 @@ void Analytics::recordInfo(const std::vector<Execution> &executions,
     }
 
     if (netQty != 0) {
-      const double favorable =
-          netQty * ((netQty > 0 ? maxPrice : minPrice) - episodeState.avgEntryPrice);
-      const double adverse =
-          netQty * ((netQty > 0 ? minPrice : maxPrice) - episodeState.avgEntryPrice);
+      const double favorable = netQty * ((netQty > 0 ? maxPrice : minPrice) -
+                                         episodeState.avgEntryPrice);
+      const double adverse = netQty * ((netQty > 0 ? minPrice : maxPrice) -
+                                       episodeState.avgEntryPrice);
 
       episodeState.mfe = std::max(favorable, episodeState.mfe);
       episodeState.mae = std::min(adverse, episodeState.mae);
     }
-
   }
 }
+
+auto sign = [](int q) { return (q > 0) - (q < 0); };
 
 void Analytics::handleExecution(const Execution &execution,
                                 EpisodeState &episodeState) {
@@ -131,19 +133,75 @@ void Analytics::handleExecution(const Execution &execution,
 
 bool Analytics::computeSharpe() {
   int n = sharpeInfo.dailyReturns.size();
-  if (n<2) return false;
-  sharpeInfo.meanDailyReturns = std::accumulate(sharpeInfo.dailyReturns.begin(), sharpeInfo.dailyReturns.end(), 0.0)/n;
-  double rfDaily =  std::pow((1+sharpeInfo.riskFreeAnnual), 1.0/252) -1;
-  
-  sharpeInfo.variance = std::accumulate(sharpeInfo.dailyReturns.begin(), sharpeInfo.dailyReturns.end(), 0.0 , [=](double acc, double curr) {
-    return acc + (curr-sharpeInfo.meanDailyReturns)*(curr-sharpeInfo.meanDailyReturns)/(n-1);
-  });
+  if (n < 2)
+    return false;
+  sharpeInfo.meanDailyReturns =
+      std::accumulate(sharpeInfo.dailyReturns.begin(),
+                      sharpeInfo.dailyReturns.end(), 0.0) /
+      n;
+  double rfDaily = std::pow((1 + sharpeInfo.riskFreeAnnual), 1.0 / 252) - 1;
 
-  sharpeInfo.sharpe = (sharpeInfo.meanDailyReturns - rfDaily)/std::sqrt(sharpeInfo.variance) * std::sqrt(252);
+  sharpeInfo.variance = std::accumulate(
+      sharpeInfo.dailyReturns.begin(), sharpeInfo.dailyReturns.end(), 0.0,
+      [=](double acc, double curr) {
+        return acc + (curr - sharpeInfo.meanDailyReturns) *
+                         (curr - sharpeInfo.meanDailyReturns) / (n - 1);
+      });
+
+  sharpeInfo.sharpe = (sharpeInfo.meanDailyReturns - rfDaily) /
+                      std::sqrt(sharpeInfo.variance) * std::sqrt(252);
 
   return true;
 }
 
-void Analytics::computeTradeClose() {
+void Analytics::computePositionRecords() {
+  positionInfo.num = positionRecords.size();
 
+  // for each position, ++numWinningPositions, +=
+  for (const auto &pr : positionRecords) {
+    bool win = pr.pnl > 0;
+    bool isLong = pr.direction;
+    excursions.push_back({pr.mae, pr.mfe, isLong, win});
+
+    if (win) {
+      positionInfo.numWin++;
+      positionInfo.grossProfit += pr.pnl;
+    } else
+      positionInfo.grossProfit += pr.pnl;
+  }
+}
+
+void Analytics::computeExitRecords() {
+  exitsInfo.num = exitRecords.size();
+  for (const auto &ex : exitRecords) {
+    if (ex.pnl > 0) {
+      exitsInfo.numWin++;
+      exitsInfo.grossProfit += ex.pnl;
+    } else {
+      exitsInfo.grossLoss += ex.pnl;
+    }
+  }
+}
+
+double median(const std::vector<Execursion> &excursions, bool isLong,
+              bool win) {
+  std::vector<double> v;
+  std::copy_if(
+      excursions.begin(), excursions.end(), std::back_inserter(v),
+      [=](Execursion &ex) { return ex.isLong == isLong && ex.win == win; });
+
+  if (v.empty())
+    return 0;
+  std::size_t n = v.size();
+  return (n % 2) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
+}
+
+double percentaile(const std::vector<Execursion> &excursions, double p,
+                   bool isLong, bool win) {
+  std::vector<double> v;
+  std::copy_if(
+      excursions.begin(), excursions.end(), std::back_inserter(v),
+      [=](Execursion &ex) { return ex.isLong == isLong && ex.win == win; });
+  if (v.empty())
+    return 0;
 }

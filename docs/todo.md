@@ -26,7 +26,8 @@
     - [x] update mae and mfe in episodeState
     - [x] when position closes, add mae,mfe to positionRecords
   - [x] computeSharpe (fills info)
-  - [ ] computeTradeClose
+  - [x] computePositionRecords
+  - [x] computeExitRecords
 
 
 

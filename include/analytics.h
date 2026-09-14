@@ -5,12 +5,18 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <deque>
 #include <iostream>
 #include <limits>
 #include <string>
 #include <vector>
-#include <deque>
 
+struct Execursion {
+  double mae;
+  double mfe;
+  bool isLong;
+  bool win;
+};
 
 struct OpenPosition {
   std::string date;
@@ -21,44 +27,45 @@ struct OpenPosition {
 
 struct EpisodeState {
   std::string openTime{};
-  std::deque<OpenPosition>  openPositions{};
+  std::deque<OpenPosition> openPositions{};
   double entryNotional{0};
   double exitNotional{0};
   double avgEntryPrice{0};
-  double mae {std::numeric_limits<double>::infinity()};
-  double mfe {-std::numeric_limits<double>::infinity()};
-
+  double mae{std::numeric_limits<double>::infinity()};
+  double mfe{-std::numeric_limits<double>::infinity()};
 };
-
 
 struct ExitRecord {
   std::string entryTime;
   std::string exitTime;
-  
+
   int direction;
   int qty;
 
   double exitPrice, entryPrice, pnl;
 };
+
 struct PositionRecord {
   std::string openTime, closeTime;
   int direction;
   double entryNotional, exitNotional, pnl, mae, mfe;
 };
 
-struct TradeCloseInfo {
+struct PositionsInfo {
   // trade-close metrics
-  int numWinningPositions{0};
-  int numPositions{0};
+  int numWin{0};
+  int num{0};
+  double grossProfit{0};
+  double grossLoss{0};
+};
 
-  int numWinningExits{0};
-  int numExits{0};
+struct ExitsInfo {
+  int numWin{0};
+  int num{0};
+  double grossProfit{0};
+  double grossLoss{0};
 
-  double positionGrossProfit{0};
-  double positionGrossLoss{0};
 
-  double exitGrossProfit{0};
-  double exitGrossLoss{0};
 };
 
 struct SharpeInfo {
@@ -69,11 +76,15 @@ struct SharpeInfo {
   double sharpe{};
 };
 
+
+
 class Analytics {
+  std::vector<Execursion> excursions;
   std::vector<ExitRecord> exitRecords;
   std::vector<PositionRecord> positionRecords;
 
-  TradeCloseInfo tradeCloseMetrics{};
+  PositionsInfo positionInfo{};
+  ExitsInfo exitsInfo{};
 
   // max drawdown
   double maxDrawDown{0};
@@ -93,12 +104,16 @@ class Analytics {
 public:
   bool captureState(const State &state);
 
-  void recordInfo(const std::vector<Execution> &executions, const std::vector<BarSnapshot> &barSnapshots);
+  void recordInfo(const std::vector<Execution> &executions,
+                  const std::vector<BarSnapshot> &barSnapshots);
 
-  void handleExecution(const Execution& execution, EpisodeState& episodeState);
+  void handleExecution(const Execution &execution, EpisodeState &episodeState);
 
   bool computeSharpe();
-  void computeTradeClose();
+
+  void computePositionRecords();
+
+  void computeExitRecords();
 
   void reportPositions() {
     std::cout << "size:" << positionRecords.size() << '\n';
@@ -108,12 +123,12 @@ public:
                 << " Exit:" << p.exitNotional << " PNL:" << p.pnl << '\n';
     }
   }
-  
+
   void reportExits() {
     std::cout << "size:" << exitRecords.size() << '\n';
     for (auto &e : exitRecords) {
-      std::cout << "Entry time:" << e.entryTime << " Exit time:" << e.exitTime << " Qty:" << e.qty
-                << " Entry price:" << e.entryPrice
+      std::cout << "Entry time:" << e.entryTime << " Exit time:" << e.exitTime
+                << " Qty:" << e.qty << " Entry price:" << e.entryPrice
                 << " Exit price:" << e.exitPrice << " pnl:" << e.pnl << '\n';
     }
   }
