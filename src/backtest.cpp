@@ -18,8 +18,7 @@ void Backtest::run(DataFeed &feed, Strategy &strategy, State &state) {
 
     int qtyBefore = state.getNetQty();
 
-    if (qtyBefore != 0)
-      state.addPriceRange(bar.date, bar.low, bar.high);
+
 
     // fill first
     bool increasingPosition =
@@ -28,7 +27,7 @@ void Backtest::run(DataFeed &feed, Strategy &strategy, State &state) {
     if (qty != 0 && (!increasingPosition || canAffordPosition)) {
       state.addExecution(bar.date, qty, bar.open);
     }
-    state.addEquity(bar.date, bar.close);
+    state.addEquity(bar.date, bar.close, minPrice, maxPrice);
 
     int qtyAfter = state.getNetQty();
 

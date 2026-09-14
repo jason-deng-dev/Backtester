@@ -8,6 +8,8 @@ struct Equity {
   std::string date{};
   double equity{};
   int netQty{};
+  double minPrice{};
+  double maxPrice{};
 };
 
 struct Execution {
@@ -25,8 +27,8 @@ public:
   int getNetQty() const { return netQty; }
 
   // called on each bar
-  void addEquity(const std::string &date, double price) {
-    equityCurve.push_back({date, price * netQty + cash, netQty});
+  void addEquity(const std::string &date, double price, double minPrice, double maxPrice) {
+    equityCurve.push_back({date, price * netQty + cash, netQty, minPrice, maxPrice});
   }
 
   void addExecution(const std::string &date, int qty, double price) {
