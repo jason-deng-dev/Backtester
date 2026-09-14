@@ -89,8 +89,9 @@ struct PositionRecord{time openTime, closeTime; int direction; double entryNotio
 
 # path/curve metrics
 - max drawdown
-  - greatest movement from high point to low point in a portfolio
+  - deepest decline before a new peak is made
   - MDD = (Peak-Trough) / Peak
+  - equity marked at each bar's close
 - Sharpe / Volatility
   - computed from daily returns then annaulized
   - need equity curve E_0, ... E_n
