@@ -4,18 +4,18 @@
 #include <deque>
 
 void Analytics::captureState(const State &state) {
-  // Equity<date, equity, netQty>
-  const auto &equityCurve = state.getEquityCurve();
-  // Execution<date, qty, price, maxPrice, minPrice>
+  // BarSnapshot<date, equity, netQty, minPrice, maxPrice>
+  const auto &barSnapshots = state.getBarSnapshots();
+  // Execution<date, qty, price>
   const auto &executions = state.getExecutions();
 
-  recordExecutions(executions);
+  recordInfo(executions, barSnapshots);
 }
 
 auto sign = [](int q) { return (q > 0) - (q < 0); };
 
 /*
-  Execution <date, qty, price, maxPrice, minPrice>
+  Execution <date, qty, price>
   qty > 0 = buy, qty < 0 = sell
 
   OpenPosition <date, direction, qty, price>
@@ -74,4 +74,18 @@ void Analytics::recordExecutions(const std::vector<Execution> &executions) {
   }
 }
 
-void Analytics::recordEquityCurve(const std::vector<Equity> &equityCurve) {}
+
+
+
+
+
+void Analytics::recordInfo(const std::vector<Execution> &executions, const std::vector<BarSnapshot> &barSnapshots) {
+  int executionIndex = 0;
+
+  for (auto& )
+
+
+
+
+
+}

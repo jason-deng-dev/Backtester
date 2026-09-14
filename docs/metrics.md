@@ -56,7 +56,7 @@ int netQty = 0; // signed: +long, -short
 double cash = 0.0;
 
 // stored during run
-vector<{time,double equity, int netQty}> equityCurve; // equity at each bar close = cash + netQty*price
+vector<{time,double equity, int netQty}> barSnapshots; // equity at each bar close = cash + netQty*price
 vector<{time, int qty, double price}> executions; // every fill, qty signed
 
 // for MFE and MAE, resets when netQty changes sign;
@@ -106,7 +106,7 @@ struct PositionRecord{time openTime, closeTime; int direction; double entryNotio
   - annualize
     - sharpe = (mean_r - rf_daily) / std * √252
 - time-in-market
-  - fraction of backtest you held a position (equityCurve when netQty == 0)
+  - fraction of backtest you held a position (barSnapshots when netQty == 0)
 - CAGR
   - constant annual rate that would take you from start equity to end equity, compounded
   - = (E_end / E_start) ^ (1/years)-1
@@ -121,12 +121,8 @@ state holds for each bar where hold position:
 Long: adverse_bar = low[t] - entry, favorable_bar = high[t] - entry
 Short: adverse_bar = entry - high[t], favorable_bar = entry-low[t]
 
-```c++
-struct PriceRange{
-  string date;
-  double minPrice;
-  double maxPrice;
-}
+mae of position = min(adverse[t]) along period of position
 
-std::vector<PriceRange>
-```
+mfe of position = max(favorable[t]) along period of position
+
+

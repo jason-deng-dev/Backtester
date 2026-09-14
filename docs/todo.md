@@ -21,3 +21,8 @@
     - [ ] fill tradingDays, daysInMarket
     - [ ] fill startEquity, endEquity
   - [ ] Implement MAE/MFE in backtest
+    - [ ] combine recordExecutions/recordEquityCurve into a single function recordInfo(executions, equityCurve)
+    - [ ] recordExecutions functionality goes into recordFill
+  - [ ] Add concurrency/parallelism
+    - [ ] to Analytic operations
+    - [ ] to allow backtest on multiple historical data, on multiple strategies at once

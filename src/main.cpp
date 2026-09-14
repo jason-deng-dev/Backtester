@@ -21,7 +21,7 @@ int main() {
 
   Analytics an{};
 
-  std::cout << "equity after:" << st.getEquityCurve().back().equity <<'\n';
+  std::cout << "equity after:" << st.getBarSnapshots().back().equity <<'\n';
   std::cout << "cash after:" << st.getCash() << " shares after:" << st.getNetQty() << '\n';
 
   an.captureState(st);
