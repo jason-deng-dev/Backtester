@@ -15,14 +15,14 @@
 - [ ] Analytics
   - [x] recordExecutions
     - [x] implement lot based FIFO for exitRecords
-  - [ ] recordEquityCurve
-    - [ ] fill sharpeInfo
-    - [ ] fill maxDrawDown
-    - [ ] fill tradingDays, daysInMarket
-    - [ ] fill startEquity, endEquity
+  - [x] recordInfo
+    - [x] fill sharpeInfo::dailyReturns
+    - [x] fill maxDrawDown
+    - [x] fill tradingDays, daysInMarket
+    - [x] fill startEquity, endEquity
   - [ ] Implement MAE/MFE in backtest
-    - [ ] combine recordExecutions/recordEquityCurve into a single function recordInfo(executions, equityCurve)
-    - [ ] recordExecutions functionality goes into recordFill
+    - [x] combine recordExecutions/recordEquityCurve into a single function recordInfo(executions, equityCurve)
+    - [x] recordExecutions functionality goes into handleExecutions
   - [ ] Add concurrency/parallelism
     - [ ] to Analytic operations
     - [ ] to allow backtest on multiple historical data, on multiple strategies at once

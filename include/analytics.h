@@ -8,6 +8,8 @@
 #include <limits>
 #include <string>
 #include <vector>
+#include <deque>
+
 
 struct OpenPosition {
   std::string date;
@@ -15,6 +17,15 @@ struct OpenPosition {
   int qty;
   double price;
 };
+
+struct EpisodeState {
+  std::string openTime{};
+  std::deque<OpenPosition>  openPositions{};
+  double entryNotional{0};
+  double exitNotional{0};
+  double avgEntryPrice{0};
+};
+
 
 struct ExitRecord {
   std::string entryTime;
@@ -76,11 +87,11 @@ class Analytics {
   double endEquity{};
 
 public:
-  void captureState(const State &state);
+  bool captureState(const State &state);
 
   void recordInfo(const std::vector<Execution> &executions, const std::vector<BarSnapshot> &barSnapshots);
 
-  
+  void handleExecution(const Execution& execution, EpisodeState& episodeState);
 
   void reportPositions() {
     std::cout << "size:" << positionRecords.size() << '\n';
