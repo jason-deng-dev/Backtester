@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iterator>
 #include <numeric>
+#include <optional>
 
 bool Analytics::captureState(const State &state) {
   // BarSnapshot<date, equity, netQty, minPrice, maxPrice>
@@ -160,14 +161,15 @@ void Analytics::computePositionRecords() {
   // for each position, ++numWinningPositions, +=
   for (const auto &pr : positionRecords) {
     bool win = pr.pnl > 0;
-    bool isLong = pr.direction;
-    excursions.push_back({pr.mae, pr.mfe, isLong, win});
+    bool isLong = pr.direction > 0;
+    excursions.push_back({pr.mae / std::abs(pr.entryNotional),
+                          pr.mfe / std::abs(pr.entryNotional), isLong, win});
 
     if (win) {
       positionInfo.numWin++;
       positionInfo.grossProfit += pr.pnl;
     } else
-      positionInfo.grossProfit += pr.pnl;
+      positionInfo.grossLoss += pr.pnl;
   }
 }
 
@@ -183,25 +185,51 @@ void Analytics::computeExitRecords() {
   }
 }
 
-double median(const std::vector<Execursion> &excursions, bool isLong,
-              bool win) {
-  std::vector<double> v;
+std::vector<Execursion> filter(const std::vector<Execursion> &excursions,
+                               double isLong, bool win) {
+  std::vector<Execursion> v;
   std::copy_if(
       excursions.begin(), excursions.end(), std::back_inserter(v),
-      [=](Execursion &ex) { return ex.isLong == isLong && ex.win == win; });
-
-  if (v.empty())
-    return 0;
-  std::size_t n = v.size();
-  return (n % 2) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
+      [=](Execursion ex) { return ex.isLong == isLong && ex.win == win; });
+  return v;
 }
 
-double percentaile(const std::vector<Execursion> &excursions, double p,
-                   bool isLong, bool win) {
-  std::vector<double> v;
-  std::copy_if(
-      excursions.begin(), excursions.end(), std::back_inserter(v),
-      [=](Execursion &ex) { return ex.isLong == isLong && ex.win == win; });
+// mode = "mae" / "mfe"
+// precondition that v is sorted based on mode before passing
+std::optional<double> median(const std::vector<Execursion> &v, bool mae) {
   if (v.empty())
-    return 0;
+    return std::nullopt;
+  std::size_t n = v.size();
+  if (mae) {
+    return (n % 2) ? v[n / 2].maeNorm
+                   : 0.5 * (v[n / 2 - 1].maeNorm + v[n / 2].maeNorm);
+  } else {
+    return (n % 2) ? v[n / 2].mfeNorm
+                   : 0.5 * (v[n / 2 - 1].mfeNorm + v[n / 2].mfeNorm);
+  }
+}
+
+// mode = "mae" / "mfe"
+// precondition that v is sorted based on mode before passing
+// enforce minNeeded so we have statisically valuable percentaile result
+std::optional<double> percentaile(const std::vector<Execursion> &v, double p,
+                                  bool mae) {
+  if (p < 0 || p > 1)
+    return std::nullopt;
+
+  std::size_t minNeeded = std::ceil(1.0 / (1.0 - p)) * 2;
+  std::size_t n = v.size();
+  if (n < minNeeded)
+    return std::nullopt;
+
+  std::size_t k = std::ceil(p * n);
+  if (k < 1)
+    k = 1;
+  if (k > n)
+    k = n;
+
+  if (mae)
+    return v[k - 1].maeNorm;
+  else
+    return v[k - 1].mfeNorm;
 }

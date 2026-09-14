@@ -12,8 +12,8 @@
 #include <vector>
 
 struct Execursion {
-  double mae;
-  double mfe;
+  double maeNorm;
+  double mfeNorm;
   bool isLong;
   bool win;
 };
