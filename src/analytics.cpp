@@ -1,7 +1,9 @@
 #include "analytics.h"
 #include "state.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
+#include <numeric>
 
 bool Analytics::captureState(const State &state) {
   // BarSnapshot<date, equity, netQty, minPrice, maxPrice>
@@ -17,8 +19,6 @@ bool Analytics::captureState(const State &state) {
 
   return true;
 }
-
-auto sign = [](int q) { return (q > 0) - (q < 0); };
 
 // precondition: barSnapshots size > 0
 void Analytics::recordInfo(const std::vector<Execution> &executions,
@@ -127,4 +127,23 @@ void Analytics::handleExecution(const Execution &execution,
     openPositions.push_back({date, sign(qty), remaining, price});
     entryNotional += sign(qty) * remaining * price;
   }
+}
+
+bool Analytics::computeSharpe() {
+  int n = sharpeInfo.dailyReturns.size();
+  if (n<2) return false;
+  sharpeInfo.meanDailyReturns = std::accumulate(sharpeInfo.dailyReturns.begin(), sharpeInfo.dailyReturns.end(), 0.0)/n;
+  double rfDaily =  std::pow((1+sharpeInfo.riskFreeAnnual), 1.0/252) -1;
+  
+  sharpeInfo.variance = std::accumulate(sharpeInfo.dailyReturns.begin(), sharpeInfo.dailyReturns.end(), 0.0 , [=](double acc, double curr) {
+    return acc + (curr-sharpeInfo.meanDailyReturns)*(curr-sharpeInfo.meanDailyReturns)/(n-1);
+  });
+
+  sharpeInfo.sharpe = (sharpeInfo.meanDailyReturns - rfDaily)/std::sqrt(sharpeInfo.variance) * std::sqrt(252);
+
+  return true;
+}
+
+void Analytics::computeTradeClose() {
+
 }

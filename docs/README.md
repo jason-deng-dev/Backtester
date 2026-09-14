@@ -17,7 +17,7 @@ Next-bar timing
 - compute after close, submit, fill at next open
 
 # Assumptions
-- risk-free annual rate = 0
+- constant risk-free annual rate
 - prices are split + divided adjusted
 - no slippage, no bid-ask spread, no market impact
 - no commissions or fees

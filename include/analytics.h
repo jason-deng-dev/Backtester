@@ -64,7 +64,7 @@ struct TradeCloseInfo {
 struct SharpeInfo {
   std::vector<double> dailyReturns{};
   double meanDailyReturns{};
-  double riskFreeAnnual{};
+  double riskFreeAnnual{0};
   double variance{};
   double sharpe{};
 };
@@ -96,6 +96,9 @@ public:
   void recordInfo(const std::vector<Execution> &executions, const std::vector<BarSnapshot> &barSnapshots);
 
   void handleExecution(const Execution& execution, EpisodeState& episodeState);
+
+  bool computeSharpe();
+  void computeTradeClose();
 
   void reportPositions() {
     std::cout << "size:" << positionRecords.size() << '\n';

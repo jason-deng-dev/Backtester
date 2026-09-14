@@ -25,6 +25,15 @@
     - [x] recordExecutions functionality goes into handleExecutions
     - [x] update mae and mfe in episodeState
     - [x] when position closes, add mae,mfe to positionRecords
+  - [x] computeSharpe (fills info)
+  - [ ] computeTradeClose
+
+
+
+
+
+
   - [ ] Add concurrency/parallelism
     - [ ] to Analytic operations
     - [ ] to allow backtest on multiple historical data, on multiple strategies at once
+  - [ ] 
