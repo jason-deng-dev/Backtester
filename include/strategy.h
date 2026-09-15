@@ -110,7 +110,13 @@ private:
 };
 
 class buyHoldSignal : public Signal {
-public:
+  int generate(State &state, const std::vector<Bar> &history) override {
+    if (history.size()==0) return 1;
+    if (state.getTotalBars() == history.size()-1) {
+      return -1;
+    }
+    return 0;
+  }
 };
 
 class StrategyImproved {

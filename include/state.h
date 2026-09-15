@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -27,8 +28,8 @@ public:
 
   double getCash() const { return cash; }
   int getNetQty() const { return netQty; }
-  void setTotalBars(int bars) {totalBars = bars;}
-  int getTotalBars() const {return totalBars;}
+  void setTotalBars(std::size_t bars) {totalBars = bars;}
+  std::size_t getTotalBars() const {return totalBars;}
 
   // called on each bar
   void addBarSnapshot(const std::string &date, double price, double minPrice, double maxPrice) {
@@ -48,7 +49,7 @@ public:
   const std::vector<Execution> &getExecutions() const { return executions; }
 
 private:
-  int totalBars{};
+  std::size_t totalBars{};
   double cash{};
   int netQty{};
   std::vector<BarSnapshot> barSnapshots;
