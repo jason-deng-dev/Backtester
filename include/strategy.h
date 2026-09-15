@@ -1,7 +1,7 @@
 #pragma once
 
-#include "state.h"
 #include "backtest.h"
+#include "state.h"
 #include <cstddef>
 #include <queue>
 
@@ -80,28 +80,37 @@ protected:
   }
 };
 
-
 class Signal {
 public:
   virtual ~Signal() = default;
-  virtual int maxLookback() const = 0;
+  virtual int generate(State &state, const std::vector<Bar> &history);
+
+private:
+  int minLookback{}; // called by generate to verify we have enough history
 };
 
 class Sizer {
 public:
   virtual ~Sizer() = default;
-  virtual int maxLookback() const = 0;
+  virtual double generate(int signalOutput, State &state,
+                          const std::vector<Bar> &history);
+
+private:
+  int minLookback{}; // called by generate to verify we have enough history
 };
 
 class RiskManager {
 public:
   virtual ~RiskManager() = default;
-  virtual int maxLookback() const = 0;
+  virtual double generate(double sizerOutput, State &state,
+                          const std::vector<Bar> &history);
+
+private:
+  int minLookback{}; // called by generate to verify we have enough history
 };
 
 class buyHoldSignal : public Signal {
 public:
-  int maxLookback() const override { return 0; }
 };
 
 class StrategyImproved {
@@ -111,7 +120,6 @@ class StrategyImproved {
 
 public:
   StrategyImproved(Signal &signal, Sizer &sizer, RiskManager &riskManager)
-      : signal_(signal), sizer_(sizer), riskManager_(riskManager) {
-      }
-  int getMove(State &state, const std::vector<Bar>& history);
+      : signal_(signal), sizer_(sizer), riskManager_(riskManager) {}
+  int getMove(State &state, const std::vector<Bar> &history);
 };

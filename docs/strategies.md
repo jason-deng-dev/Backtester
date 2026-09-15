@@ -49,8 +49,14 @@ Signal| long/short/flat? | Direction {-1,0,+1}
 Sizing | how much capital in each stock, size of our buy/sell | Target weights {5% AAPL, 3% NVDA}, magnitude of order
 Risk | Am I alllowed to hold this, and at what size | Adjust weights / force exits / halts
 
-Backtest holds `std::vector<Bar> history` which is fed to Signal, Sizer, RiskManager during getMove along with State
-`signal_.generate(state, history.subspan(history.size()-n));`
+Backtest holds `std::vector<Bar> history` which is passed to Strategy, who passes it to Signal/Sizer/RiskManager
+`signalOutput = signal_.generate(state, history);`
+`sizerOutput = sizer_.generate(signalOutput, state, history)`
+`finalMove = riskManager_.generate(sizerOutput, state, history)`
+
+
+
+
 
 
 # Strategies to implement
