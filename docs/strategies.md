@@ -16,8 +16,6 @@
 4. Execution : entry timing (next open vs close), rebalance frequency, participation limit, slippage/cost model
 5. Universe : which symbols, liquidity/price filters, rebalance universe refresh
 
-build these 5 as swappable concerns, that we can mix and match to influence our strategy behavior
-
 # Structure
 
 ## implementation 1
@@ -54,19 +52,30 @@ Backtest holds `std::vector<Bar> history` which is passed to Strategy, who passe
 `sizerOutput = sizer_.generate(signalOutput, state, history)`
 `finalMove = riskManager_.generate(sizerOutput, state, history)`
 
-
-
-
-
-
 # Strategies to implement
 
-|Pick |	What it stresses|
+## Signal:
+|signal |	What it stresses|
 |----------|----------|
-Buy & hold + random |	The benchmark and null every metric hangs off
-Fast mean reversion (z-score)	|Turnover, cost sensitivity, per-exit accounting, huge trade counts
-Slow trend (Donchian/MA cross)|	Long holds, MAE/MFE distributions, position carry
-Vol-targeted sizing overlay	|Forces sizing to be a separate axis from the signal
+buy & hold | baseline
+z-score reversion | rolling-window history; high turnover; per-exit accounting
+random | determinism — seeded, reproducible; plus the null-matching harness
+Donchian/MAE cross | long holds; MAE/MFE on carried positions; opposite sign
+
+## Sizer:
+| behavior |	What it stresses|
+|----------|----------|
+Fixed fractional | shares = (f x equity) / price 
+Vol target: shares | (targetVol / σ) × equity / price
+Risk-based: shares | (equity x risk%) / (entry-stop)
+
+## Risk Manager:
+| behavior | What it stresses|
+|----------|-----------------|
+notional/exposure cap|the risk↔sizer interface — cheapest proof the axis does anything
+stop-loss (take-profit) | intrabar fill modelling
+time stop/max holding period|position age
+
 
 # Details
 

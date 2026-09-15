@@ -12,8 +12,10 @@ void Backtest::run(DataFeed &feed, Strategy &strategy, State &state) {
   state.setTotalBars(feed.barCount());
   Bar bar{};
   while (feed.next(bar)) {
-    history_.push_back(bar);
+    
     int qty = strategy.getMove(state, bar.open, bar.close);
+    history_.push_back(bar);
+   
     bool increasingPosition =
         std::abs(state.getNetQty() + qty) > std::abs(state.getNetQty());
     bool canAffordPosition = std::abs(qty) * bar.open <= state.getCash();

@@ -29,8 +29,16 @@
   - [x] computePositionRecords
   - [x] computeExitRecords
 - [ ] Strategies
-  - [ ] Create random signal generator, that will be tested against strategy signals
-  - [ ] Model 1: Buy & hold
-  - [ ] Model 2: Fast Mean Reversion (Z-Score)
-  - [ ] Model 3: Slow Trend Following (Donchian / MA Cross)
-  - [ ] Model 4: Vol-Targeted Sizing Overlay
+  - [ ] Signal
+    - [x] buy & hold
+    - [ ] z-score reversion
+    - [ ] random
+    - [ ] Donchina/MAE cross
+  - [ ] Sizer  
+    - [ ] Fixed fractional
+    - [ ] Vol target
+    - [ ] Risk-based
+  - [ ] Risk Manager
+    - [ ] notional/exposure cap
+    - [ ] stop-loss (take-profit)
+    - [ ] time stop/max holding period

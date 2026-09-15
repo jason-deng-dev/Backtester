@@ -26,6 +26,9 @@ public:
     barSnapshots.push_back({"before trading", cash, netQty_, 0, 0});
   }
 
+  double getEquity(double price) const {
+    return cash + netQty*price;
+  }
   double getCash() const { return cash; }
   int getNetQty() const { return netQty; }
   void setTotalBars(std::size_t bars) {totalBars = bars;}
