@@ -8,8 +8,8 @@
 #include <limits>
 
 void Backtest::run(DataFeed &feed, Strategy &strategy, State &state) {
-  history_.reserve(feed.barCount())
-;
+  history_.reserve(feed.barCount());
+  state.setTotalBars(feed.barCount());
   Bar bar{};
   while (feed.next(bar)) {
     history_.push_back(bar);

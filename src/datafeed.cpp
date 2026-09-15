@@ -20,7 +20,7 @@ bool DataFeed::load(const std::string &filePath) {
   if (!in)
     return false;
 
-  barCount_ = std::count(buffer.begin(), buffer.end(), '\n');
+  barCount_ = std::count(buffer.begin(), buffer.end(), '\n')-3;
 
   char *currStart = buffer.data();
   char *bufEnd = buffer.data() + buffer.size();
