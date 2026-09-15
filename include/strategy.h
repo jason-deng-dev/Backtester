@@ -2,6 +2,7 @@
 #define STRATEGY_H
 
 #include "state.h"
+#include <algorithm>
 #include <cstddef>
 #include <queue>
 
@@ -78,6 +79,47 @@ protected:
     } else
       return 0;
   }
+};
+
+class Signal {
+public:
+  virtual ~Signal() = default;
+  virtual int maxLookback() const = 0;
+};
+
+class Sizer {
+public:
+  virtual ~Sizer() = default;
+  virtual int maxLookback() const = 0;
+};
+
+class RiskManager {
+public:
+  virtual ~RiskManager() = default;
+  virtual int maxLookback() const = 0;
+};
+
+class buyHoldSignal : public Signal {
+public:
+  int maxLookback() const override { return 0; }
+};
+
+class StrategyImproved {
+  int maxLookback_{};
+  Signal& signal_;
+  Sizer& sizer_;
+  RiskManager& riskManager_;
+
+  StrategyImproved(Signal &signal, Sizer &sizer, RiskManager &riskManager)
+      : signal_(signal), sizer_(sizer), riskManager_(riskManager) {
+    maxLookback_ = std::max(
+        {signal.maxLookback(), sizer.maxLookback(), riskManager.maxLookback()});
+  }
+  int getMove(State&, Bar& bar)
+
+
+
+
 };
 
 #endif
