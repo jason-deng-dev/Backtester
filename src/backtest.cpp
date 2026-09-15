@@ -8,9 +8,11 @@
 #include <limits>
 
 void Backtest::run(DataFeed &feed, Strategy &strategy, State &state) {
-
+  history_.reserve(feed.barCount())
+;
   Bar bar{};
   while (feed.next(bar)) {
+    history_.push_back(bar);
     int qty = strategy.getMove(state, bar.open, bar.close);
     bool increasingPosition =
         std::abs(state.getNetQty() + qty) > std::abs(state.getNetQty());

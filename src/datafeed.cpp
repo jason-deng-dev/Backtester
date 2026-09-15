@@ -1,4 +1,5 @@
 #include "datafeed.h"
+#include <algorithm>
 
 bool DataFeed::load(const std::string &filePath) {
   std::ifstream in(filePath);
@@ -18,6 +19,8 @@ bool DataFeed::load(const std::string &filePath) {
   in.read(buffer.data(), fileSize);
   if (!in)
     return false;
+
+  barCount_ = std::count(buffer.begin(), buffer.end(), '\n');
 
   char *currStart = buffer.data();
   char *bufEnd = buffer.data() + buffer.size();
