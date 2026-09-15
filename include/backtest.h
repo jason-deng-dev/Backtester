@@ -1,5 +1,4 @@
-#ifndef BACKTEST_H
-#define BACKTEST_H
+#pragma once
 
 class DataFeed;
 class Strategy;
@@ -10,5 +9,3 @@ class Backtest {
 public:
   void run(DataFeed &feed, Strategy& strategy, State& state);
 };
-
-#endif

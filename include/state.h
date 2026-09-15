@@ -1,5 +1,4 @@
-#ifndef STATE_H
-#define STATE_H
+#pragma once
 
 
 #include <string>
@@ -52,5 +51,3 @@ private:
   std::vector<BarSnapshot> barSnapshots;
   std::vector<Execution> executions;
 };
-
-#endif

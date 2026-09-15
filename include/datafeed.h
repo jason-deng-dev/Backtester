@@ -1,5 +1,4 @@
-#ifndef DATAFEED_H
-#define DATAFEED_H
+#pragma once
 
 #include <algorithm>
 #include <charconv>
@@ -27,5 +26,3 @@ private:
   std::vector<char> buffer{}; // owns the data + lifetime
   const char *cursor{};       // where next() resumes;
 };
-
-#endif

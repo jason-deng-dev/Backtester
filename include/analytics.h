@@ -1,5 +1,4 @@
-#ifndef ANALYTICS_H
-#define ANALYTICS_H
+#pragma once
 
 #include "state.h"
 #include <algorithm>
@@ -147,5 +146,3 @@ private:
 
   void reportExcursions(std::ostream &os);
 };
-
-#endif

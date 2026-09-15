@@ -1,5 +1,4 @@
-#ifndef STRATEGY_H
-#define STRATEGY_H
+#pragma once
 
 #include "state.h"
 #include <algorithm>
@@ -121,5 +120,3 @@ class StrategyImproved {
 
 
 };
-
-#endif
