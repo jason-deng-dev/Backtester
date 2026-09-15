@@ -1,7 +1,7 @@
 #pragma once
 
 #include "state.h"
-#include <algorithm>
+#include "backtest.h"
 #include <cstddef>
 #include <queue>
 
@@ -80,6 +80,7 @@ protected:
   }
 };
 
+
 class Signal {
 public:
   virtual ~Signal() = default;
@@ -104,19 +105,13 @@ public:
 };
 
 class StrategyImproved {
-  int maxLookback_{};
-  Signal& signal_;
-  Sizer& sizer_;
-  RiskManager& riskManager_;
+  Signal &signal_;
+  Sizer &sizer_;
+  RiskManager &riskManager_;
 
+public:
   StrategyImproved(Signal &signal, Sizer &sizer, RiskManager &riskManager)
       : signal_(signal), sizer_(sizer), riskManager_(riskManager) {
-    maxLookback_ = std::max(
-        {signal.maxLookback(), sizer.maxLookback(), riskManager.maxLookback()});
-  }
-  int getMove(State&, Bar& bar)
-
-
-
-
+      }
+  int getMove(State &state, const std::vector<Bar>& history);
 };
