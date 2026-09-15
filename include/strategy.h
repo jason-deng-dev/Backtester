@@ -82,61 +82,40 @@ protected:
 
 class Signal {
 public:
+  Signal(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~Signal() = default;
   virtual int generate(State &state, const std::vector<Bar> &history) = 0;
+  double getMinLookback() const { return minLookback_; }
 
 private:
-  int minLookback{}; // called by generate to verify we have enough history
+  int minLookback_{}; // called by generate to verify we have enough history
 };
 
 class Sizer {
 public:
+  Sizer(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~Sizer() = default;
   virtual double generate(int signalOutput, State &state,
                           const std::vector<Bar> &history) = 0;
+  double getMinLookback() const { return minLookback_; }
 
 private:
-  int minLookback{}; // called by generate to verify we have enough history
+  int minLookback_{}; // called by generate to verify we have enough history
 };
 
 class RiskManager {
 public:
+  RiskManager(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~RiskManager() = default;
   virtual double generate(double sizerOutput, State &state,
                           const std::vector<Bar> &history) = 0;
+  double getMinLookback() const { return minLookback_; }
 
 private:
-  int minLookback{}; // called by generate to verify we have enough history
+  int minLookback_{}; // called by generate to verify we have enough history
 };
 
-namespace Signals {
-class BuyHoldSignal : public Signal {
-  int generate(State &state, const std::vector<Bar> &history) override {
-    if (history.size() == 0)
-      return 1;
-    if (state.getTotalBars() == history.size() + 1) {
-      return -1;
-    }
-    return 0;
-  }
-};
-} // namespace Signals
 
-namespace Sizers {
-class FixedFractionalSizer : public Sizer {
-public:
-  FixedFractionalSizer(double f) : f_(f) {}
-  double generate(int signalOutput, State &state,
-                  const std::vector<Bar> &history) override {
-    double price = history.back().open;
-    return signalOutput * (f_ * state.getEquity(price)) / price;
-  }
-
-private:
-  double f_{};
-};
-
-} // namespace Sizers
 
 class StrategyImproved {
   Signal &signal_;

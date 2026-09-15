@@ -35,7 +35,7 @@
     - [ ] random
     - [ ] Donchina/MAE cross
   - [ ] Sizer  
-    - [ ] Fixed fractional
+    - [x] Fixed fractional
     - [ ] Vol target
     - [ ] Risk-based
   - [ ] Risk Manager
