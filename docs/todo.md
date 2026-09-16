@@ -45,6 +45,7 @@
         - [ ] decided by constructor as a mode
     - [ ] stop-loss (take-profit)
 - [x] Move Signal/Sizer/RiskManager to their own .h files
+- [x] Replace old Strategy implementation with new
 - [ ] Tests
   - [x] DataFeed
   - [ ] State 

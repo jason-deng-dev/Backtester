@@ -3,7 +3,7 @@
 #include "sizer.h"
 #include "riskmanager.h"
 
-int StrategyImproved::getMove(const State &state,
+int Strategy::getMove(const State &state,
                               const std::vector<Bar> &history) {
   auto signalOutput = signal_.generate(state, history);
   if (signalOutput == 0)

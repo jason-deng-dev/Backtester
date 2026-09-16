@@ -1,6 +1,7 @@
 #include "analytics.h"
 #include "datafeed.h"
 #include "state.h"
+#include "strategy.h"
 #include <gtest/gtest.h>
 
 /*
@@ -93,9 +94,21 @@ TEST(StateTest, addExecution) {
 
 } // namespace StateTest
 
+namespace StrategyTest{
+  TEST(StrategyTest, RollingWindow) {
+    RollingWindow<double> rw0{0};
+
+  }
+
+  TEST(StrategyTest, NotionalCapRiskManager) {
+    RiskManagers::NotionalCapRiskManager ncr{0.1, RiskManagers::NotionalCapRiskManager::Policy::Correct};
+  }
 
 
-// Strategy tests
+
+
+
+}
 
 // Analytics tests
 TEST(AnalyticsTest, Classify) {
