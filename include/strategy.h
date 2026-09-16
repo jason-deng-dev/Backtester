@@ -137,21 +137,24 @@ public:
     if (dq.size() > maxSize) {
       T frontVal = dq.front();
       sum -= frontVal;
-      sum -= frontVal * frontVal;
+      sumSquared -= frontVal * frontVal;
       dq.pop_front();
     }
   }
   T size() const { return dq.size(); }
   T getSum() const { return sum; }
   T getSumSquared() const { return sumSquared; }
+
+
   T getStdDev() const {
     double N = dq.size();
-    return std::sqrt((sumSquared - sum*sum/N)/N-1);
+    if (N < maxSize) return -1;
+    return std::sqrt((sumSquared - sum*sum/N)/(N-1));
   }
 
 private:
   std::deque<T> dq{};
-  T sum;
-  T sumSquared;
+  T sum {0};
+  T sumSquared{0};
   int maxSize{};
 };
