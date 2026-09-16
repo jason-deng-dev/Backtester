@@ -6,7 +6,9 @@
 
 int StrategyImproved::getMove(const State &state, const std::vector<Bar> &history) {
   auto signalOutput = signal_.generate(state, history);
+  if (signalOutput == 0) return 0;
   auto sizerOutput = sizer_.generate(signalOutput, state, history);
+  if (sizerOutput == 0) return 0;
   return riskManager_.generate(sizerOutput, state, history);
 }
 
@@ -90,25 +92,33 @@ ceiling: fraction of equity
 
 class NotionalCapRiskManager : public RiskManager {
 public:
-  NotionalCapRiskManager(double ceilRatio, double ratio) : ceilRatio_(ceilRatio), ratio_(ratio) {}
+  NotionalCapRiskManager(double ceilRatio) : ceilRatio_(ceilRatio) {}
   int generate(double sizerOutput, const State &state, const std::vector<Bar> &history) override {
+    if (history.size() == 0) return 0;
     double price = history.back().close;
     double capNotional = state.getEquity(price) * ceilRatio_;
+    
     double proposedNotional = (state.getNetQty() + sizerOutput)*price;
 
-    if (std::abs(capNotional) <= std::abs(proposedNotional)) {
+    if (std::abs(capNotional) >= std::abs(proposedNotional)) {
       return sizerOutput;
     }
-    double allowedPos = capNotional / price;
+    int maxPos = std::floor(capNotional / price) ;
+    int allowedAmount = std::abs(maxPos) - std::abs(state.getNetQty());
 
-
+    return sizerOutput/std::abs(sizerOutput) * allowedAmount;
   }
-
-
 
 private:
   double ceilRatio_;
-  double ratio_;
+};
+
+
+class StopLossRiskManager : public RiskManager {
+public:
+  StopLossRiskManager()
+
+
 };
 
 } // namespace RiskManagers
