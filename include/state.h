@@ -22,7 +22,7 @@ struct Execution {
 
 class State {
 public:
-  State(double cash_, int netQty_) : cash{cash_}, netQty{netQty_} {
+  State(double cash_= 0, int netQty_= 0) : cash{cash_}, netQty{netQty_} {
     barSnapshots.push_back({"before trading", cash, netQty_, 0, 0});
   }
 

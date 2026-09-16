@@ -39,3 +39,9 @@
   - [ ] Risk Manager
     - [ ] notional cap
     - [ ] stop-loss (take-profit)
+- [ ] Tests
+  - [x] DataFeed
+  - [ ] State 
+  - [ ] Strategy
+  - [ ] Backtest
+  - [ ] Analytics
