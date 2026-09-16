@@ -145,7 +145,7 @@ public:
   T getSum() const { return sum; }
   T getSumSquared() const { return sumSquared; }
 
-
+    // precondition is that caller ensured there are enough data points before
   T getStdDev() const {
     double N = dq.size();
     if (N < maxSize) return -1;
