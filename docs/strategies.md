@@ -76,7 +76,6 @@ notional/exposure cap|the risk↔sizer interface — cheapest proof the axis doe
 stop-loss (take-profit) | intrabar fill modelling
 time stop/max holding period|position age
 
-
 # Implementation Details
 
 ## Random signal generator

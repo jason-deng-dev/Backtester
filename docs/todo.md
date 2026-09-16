@@ -33,12 +33,9 @@
     - [x] buy & hold
     - [ ] z-score reversion
     - [ ] random
-    - [ ] Donchina/MAE cross
   - [ ] Sizer  
     - [x] Fixed fractional
     - [ ] Vol target
-    - [ ] Risk-based
   - [ ] Risk Manager
-    - [ ] notional/exposure cap
+    - [ ] notional cap
     - [ ] stop-loss (take-profit)
-    - [ ] time stop/max holding period
