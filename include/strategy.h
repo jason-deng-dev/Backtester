@@ -133,7 +133,7 @@ public:
   virtual void addVal(T val) {
     dq.push_back(val);
     sum += val;
-    sum += val ^ 2;
+    sum += val * val;
     if (dq.size() > maxSize) {
       T frontVal = dq.front();
       sum -= frontVal;
