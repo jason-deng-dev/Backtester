@@ -12,8 +12,8 @@ int StrategyImproved::getMove(const State &state, const std::vector<Bar> &histor
   return riskManager_.generate(sizerOutput, state, history);
 }
 
-namespace Signals {
-class BuyHoldSignal : public Signal {
+
+class Signals::BuyHoldSignal : public Signal {
   int generate(const State &state, const std::vector<Bar> &history) override {
     if (history.size() == 0)
       return 1;
@@ -23,10 +23,10 @@ class BuyHoldSignal : public Signal {
     return 0;
   }
 };
-} // namespace Signals
 
-namespace Sizers {
-class FixedFractionalSizer : public Sizer {
+
+
+class Sizers::FixedFractionalSizer : public Sizer {
 public:
   explicit FixedFractionalSizer(double f) : f_(f) {}
   double generate(int signalOutput, const State &state,
@@ -51,7 +51,7 @@ thus need to keep track of Σ rᵢ and Σ rᵢ²
 keeps deque<double returns>
 */
 
-class VolatilityTargetSizer : public Sizer {
+class Sizers::VolatilityTargetSizer : public Sizer {
 public:
   explicit VolatilityTargetSizer(int minLookback, double targetVol)
       : Sizer(minLookback), targetVol_(targetVol) {}
@@ -81,9 +81,8 @@ private:
   RollingWindow<double> returnWindow{getMinLookback()};
 };
 
-} // namespace Sizers
 
-namespace RiskManagers {
+
 /*
 notional cap is hard limit on the total notional exposure a strategy is allowed
 to hold at any moment
@@ -93,17 +92,17 @@ Notional = shares x price
 ceiling: fraction of equity
 */
 
-class NotionalCapRiskManager : public RiskManager {
+class RiskManagers::NotionalCapRiskManager : public RiskManager {
 public:
   NotionalCapRiskManager(double ceilRatio) : ceilRatio_(ceilRatio) {}
   double generate(double sizerOutput, const State &state, const std::vector<Bar> &history) override {
-    if (history.size() == 0) return 0;
+    if (history.size() == 0 || sizerOutput == 0) return 0;
     double price = history.back().close;
     double capNotional = state.getEquity(price) * ceilRatio_;
     
     double proposedNotional = (state.getNetQty() + sizerOutput)*price;
 
-    if (std::abs(capNotional) >= std::abs(proposedNotional)) {
+    if (std::abs(capNotional) >= std::abs(proposedNotional) || state.getNetQty() > state.getNetQty()+sizerOutput) {
       return sizerOutput;
     }
     double maxPos = capNotional / price;
@@ -117,11 +116,10 @@ private:
 };
 
 
-class StopLossRiskManager : public RiskManager {
+class RiskManagers::StopLossRiskManager : public RiskManager {
 public:
   StopLossRiskManager(){}
 
 
 };
 
-} // namespace RiskManagers

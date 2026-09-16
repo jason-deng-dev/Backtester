@@ -159,3 +159,17 @@ private:
   T sumSquared{0};
   int maxSize{};
 };
+
+namespace Signals {
+  class BuyHoldSignal;
+}
+
+namespace Sizers {
+ class FixedFractionalSizer;
+ class VolatilityTargetSizer;
+}
+
+namespace RiskManagers{
+  class NotionalCapRiskManager;
+  class StopLossRiskManager;
+}
