@@ -65,7 +65,7 @@ public:
     if (!stdDev)
       return 0;
     double equity = state.getEquity(price);
-    return (targetVol_ / *stdDev) * equity / price;
+    return signalOutput * (targetVol_ / *stdDev) * equity / price;
   }
 
 private:
