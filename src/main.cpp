@@ -16,7 +16,7 @@ int main() {
 
   BuyHoldSignal signal;
   FixedFractionalSizer sizer{1};
-  NotionalCapRiskManager riskManager{0.1, NotionalCapRiskManager::Policy::Clamp};
+  NotionalCapRiskManager riskManager{0.1};
 
   Strategy rs{signal, sizer, riskManager};
 

@@ -42,22 +42,23 @@ public:
     double capNotional = state.getEquity(price) * ceilRatio_;
 
     double netQty = state.getNetQty();
+
     double newQty = netQty + sizerOutput;
 
     double proposedNotional = newQty * price;
 
     // covers undercap, reduction, oncap => rest has to be overcap
-    if (std::abs(capNotional) >= std::abs(proposedNotional)) {
+    if (std::abs(capNotional) >= std::abs(proposedNotional) || std::abs(newQty) <= std::abs(netQty)) {
       return sizerOutput;
     }
     
     bool stayLong = netQty < netQty + sizerOutput && netQty >= 0;
     bool stayShort = netQty > netQty + sizerOutput && netQty <= 0;
 
-    
-
     if (stayLong || stayShort) {
-      double maxQty = proposedNotional/price;
+      int dir = stayLong ? +1 : -1;
+      double maxQty = dir * capNotional/price;
+      
       return maxQty - netQty;
     }
     // reversal overCap: closing the old side is risk-reducing and always
