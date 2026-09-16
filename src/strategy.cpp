@@ -3,7 +3,7 @@
 #include <cmath>
 #include <numeric>
 
-int StrategyImproved::getMove(State &state, const std::vector<Bar> &history) {
+int StrategyImproved::getMove(const State &state, const std::vector<Bar> &history) {
   auto signalOutput = signal_.generate(state, history);
   auto sizerOutput = sizer_.generate(signalOutput, state, history);
   return riskManager_.generate(sizerOutput, state, history);
@@ -11,7 +11,7 @@ int StrategyImproved::getMove(State &state, const std::vector<Bar> &history) {
 
 namespace Signals {
 class BuyHoldSignal : public Signal {
-  int generate(State &state, const std::vector<Bar> &history) override {
+  int generate(const State &state, const std::vector<Bar> &history) override {
     if (history.size() == 0)
       return 1;
     if (state.getTotalBars() == history.size() + 1) {
@@ -26,7 +26,7 @@ namespace Sizers {
 class FixedFractionalSizer : public Sizer {
 public:
   explicit FixedFractionalSizer(double f) : f_(f) {}
-  double generate(int signalOutput, State &state,
+  double generate(int signalOutput, const State &state,
                   const std::vector<Bar> &history) override {
     double price = history.back().open;
     return signalOutput * (f_ * state.getEquity(price)) / price;
@@ -86,9 +86,23 @@ Notional = shares x price
 
 Hard limit = absolute ceiling, never exceed this amount
 Scaling = how the cap behaves below ceiling 
-
 */
 
-class NotionalCapRiskManager : public RiskManager {};
+class NotionalCapRiskManager : public RiskManager {
+public:
+  NotionalCapRiskManager(double ceil, double ratio) : ceil_(ceil), ratio_(ratio) {}
+  double generate(double sizerOutput, State &state, const std::vector<Bar> &history) override {
+    double price = history.back().close;
+    double currNotional = state.getNetQty() * 
+
+
+  }
+
+
+
+private:
+  double ceil_;
+  double ratio_;
+};
 
 } // namespace RiskManagers

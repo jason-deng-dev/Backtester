@@ -85,7 +85,7 @@ class Signal {
 public:
   Signal(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~Signal() = default;
-  virtual int generate(State &state, const std::vector<Bar> &history) = 0;
+  virtual int generate(const State &state, const std::vector<Bar> &history) = 0;
   int getMinLookback() const { return minLookback_; }
 
 private:
@@ -96,7 +96,7 @@ class Sizer {
 public:
   Sizer(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~Sizer() = default;
-  virtual double generate(int signalOutput, State &state,
+  virtual double generate(int signalOutput, const State &state,
                           const std::vector<Bar> &history) = 0;
   int getMinLookback() const { return minLookback_; }
 
@@ -108,7 +108,7 @@ class RiskManager {
 public:
   RiskManager(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~RiskManager() = default;
-  virtual double generate(double sizerOutput, State &state,
+  virtual double generate(double sizerOutput, const State &state,
                           const std::vector<Bar> &history) = 0;
   int getMinLookback() const { return minLookback_; }
 
@@ -124,7 +124,7 @@ class StrategyImproved {
 public:
   StrategyImproved(Signal &signal, Sizer &sizer, RiskManager &riskManager)
       : signal_(signal), sizer_(sizer), riskManager_(riskManager) {}
-  int getMove(State &state, const std::vector<Bar> &history);
+  int getMove(const State &state, const std::vector<Bar> &history);
 };
 
 template <typename T> class RollingWindow {

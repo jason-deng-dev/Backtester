@@ -14,6 +14,8 @@ void Backtest::run(DataFeed &feed, Strategy &strategy, State &state) {
   while (feed.next(bar)) {
     
     int qty = strategy.getMove(state, bar.open, bar.close);
+    
+    // history needs to be updated after getting move, since our strategy shouldn't see current price
     history_.push_back(bar);
    
     bool increasingPosition =
