@@ -77,4 +77,18 @@ private:
 
 } // namespace Sizers
 
-namespace RiskManagers {}
+namespace RiskManagers {
+/*
+notional cap is hard limit on the total notional exposure a strategy is allowed
+to hold at any moment
+
+Notional = shares x price
+
+Hard limit = absolute ceiling, never exceed this amount
+Scaling = how the cap behaves below ceiling 
+
+*/
+
+class NotionalCapRiskManager : public RiskManager {};
+
+} // namespace RiskManagers
