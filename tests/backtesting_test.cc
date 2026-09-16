@@ -101,7 +101,7 @@ TEST(StateTest, addExecution) {
 namespace StrategyTest {
 TEST(StrategyTest, RollingWindow) { RollingWindow<double> rw0{0}; }
 
-TEST(StrategyTest, NotionalCapRiskManager) {
+TEST(StrategyTest, LongNotionalCapRiskManager) {
   NotionalCapRiskManager ncr{0.1};
   State st{100, 10};
   std::vector<Bar> hs{};
@@ -125,9 +125,29 @@ TEST(StrategyTest, NotionalCapRiskManager) {
   EXPECT_EQ(ncr.generate(2, st, hs), 1) << "overcap";
   EXPECT_EQ(ncr.generate(1, st, hs), 1) << "oncap";
   EXPECT_EQ(ncr.generate(0.5, st, hs), 0.5) << "undercap";
-  EXPECT_EQ(ncr.generate(-2, st, hs), 0.5) << "reduce";
+  EXPECT_EQ(ncr.generate(-2, st, hs), -2) << "reduce";
   EXPECT_EQ(ncr.generate(-11, st, hs), -11) << "reversalUndercap";
-  EXPECT_EQ(ncr.generate(-21, st, hs), -20) << "reversalOvercap";
+  EXPECT_EQ(ncr.generate(-22, st, hs), -21) << "reversalOvercap";
+}
+
+TEST(StrategyTest, ShortNotionalCapRiskmanager) {
+  NotionalCapRiskManager ncr{0.1};
+  State st{100, -5};
+  std::vector<Bar> hs{};
+  hs.push_back({"Date", 1});
+  // equity = 100 + (-5)*1 = 95
+  // capNotional = 95*0.1 = 9.5 -> capQty = 9.5 shares
+  EXPECT_EQ(ncr.generate(-2, st, hs), -2) << "undercap increase short";
+  EXPECT_EQ(ncr.generate(-4.5, st, hs), -4.5) << "oncap short";
+  EXPECT_EQ(ncr.generate(-6, st, hs), -4.5) << "overcap increase short clamps to cap";
+  EXPECT_EQ(ncr.generate(2, st, hs), 2) << "reduce short";
+  EXPECT_EQ(ncr.generate(5, st, hs), 5) << "close out to flat";
+  EXPECT_EQ(ncr.generate(8, st, hs), 8) << "reversal undercap";
+  EXPECT_EQ(ncr.generate(20, st, hs), 14.5) << "reversal overcap: close 5, establish 9.5";
+
+  // already over cap: risk-reducing orders must pass untouched
+  State st2{100, -12}; // equity = 88 -> capQty = 8.8
+  EXPECT_EQ(ncr.generate(2, st2, hs), 2) << "reduce while overcap";
 }
 
 } // namespace StrategyTest
