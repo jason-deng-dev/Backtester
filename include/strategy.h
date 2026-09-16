@@ -2,6 +2,7 @@
 
 #include "backtest.h"
 #include "state.h"
+#include <cmath>
 #include <cstddef>
 #include <queue>
 
@@ -85,7 +86,7 @@ public:
   Signal(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~Signal() = default;
   virtual int generate(State &state, const std::vector<Bar> &history) = 0;
-  double getMinLookback() const { return minLookback_; }
+  int getMinLookback() const { return minLookback_; }
 
 private:
   int minLookback_{}; // called by generate to verify we have enough history
@@ -97,7 +98,7 @@ public:
   virtual ~Sizer() = default;
   virtual double generate(int signalOutput, State &state,
                           const std::vector<Bar> &history) = 0;
-  double getMinLookback() const { return minLookback_; }
+  int getMinLookback() const { return minLookback_; }
 
 private:
   int minLookback_{}; // called by generate to verify we have enough history
@@ -109,13 +110,11 @@ public:
   virtual ~RiskManager() = default;
   virtual double generate(double sizerOutput, State &state,
                           const std::vector<Bar> &history) = 0;
-  double getMinLookback() const { return minLookback_; }
+  int getMinLookback() const { return minLookback_; }
 
 private:
   int minLookback_{}; // called by generate to verify we have enough history
 };
-
-
 
 class StrategyImproved {
   Signal &signal_;
@@ -126,4 +125,33 @@ public:
   StrategyImproved(Signal &signal, Sizer &sizer, RiskManager &riskManager)
       : signal_(signal), sizer_(sizer), riskManager_(riskManager) {}
   int getMove(State &state, const std::vector<Bar> &history);
+};
+
+template <typename T> class RollingWindow {
+public:
+  explicit RollingWindow(int maxS) : maxSize(maxS) {}
+  virtual void addVal(T val) {
+    dq.push_back(val);
+    sum += val;
+    sum += val ^ 2;
+    if (dq.size() > maxSize) {
+      T frontVal = dq.front();
+      sum -= frontVal;
+      sum -= frontVal * frontVal;
+      dq.pop_front();
+    }
+  }
+  T size() const { return dq.size(); }
+  T getSum() const { return sum; }
+  T getSumSquared() const { return sumSquared; }
+  T getStdDev() const {
+    double N = dq.size();
+    return std::sqrt((sumSquared - sum*sum/N)/N-1);
+  }
+
+private:
+  std::deque<T> dq{};
+  T sum;
+  T sumSquared;
+  int maxSize{};
 };

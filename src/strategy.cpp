@@ -1,5 +1,6 @@
 #include "strategy.h"
 #include "datafeed.h"
+#include <cmath>
 #include <numeric>
 
 int StrategyImproved::getMove(State &state, const std::vector<Bar> &history) {
@@ -35,42 +36,43 @@ private:
   double f_{};
 };
 
-// (targetVol / σ) × equity / price
-// dailyVol = standard deviation of dailyReturns across lookback period
-// need mean of returns across period
-// compute each squared deviation (ri-rMean)^2
-// each new window, update rMean, and ∑(ri-rM)
-// keeps deque<double returns>
+/*
+(targetVol / σ) × equity / price
+dailyVol = standard deviation of dailyReturns across lookback period
+Var = 1/(N-1) Σ(rᵢ − r̄)²  = (Σ rᵢ² − (Σ rᵢ)²/N)/(N-1)
+thus need to keep track of Σ rᵢ and Σ rᵢ²
+
+σ = √ Var
+
+keeps deque<double returns>
+*/
+
 class VolatilityTargetSizer : public Sizer {
 public:
   explicit VolatilityTargetSizer(int minLookback, double targetVol)
       : Sizer(minLookback), targetVol_(targetVol) {}
+
   double generate(int signalOutput, State &state,
                   const std::vector<Bar> &history) override {
-    if (getMinLookback() + 1 > history.size()) {
-      return 0;
-    } else if (getMinLookback() + 1 == history.size()) {
-      for (int i = 0; i < history.size() - 1; ++i) {
-        double pCurr = history[i].close;
-        double pNext = history[i + 1].close;
-        double currReturn = pNext / pCurr - 1;
-        returnTotal += currReturn;
-        returns.push_back(currReturn);
-      }
-    } else {
-      double pPrev = history[history.size() - 2].close;
-      double pCurr = history.back().close;
-      double newReturn = pCurr / pPrev - 1;
-      returns.push_back(newReturn);
-      returnTotal += -returns.front() + newReturn;
-      returns.pop_front();
+    int N = getMinLookback();
+
+    if (history.size() > 1) {
+      double currReturn =
+          history.back().close / history[history.size() - 2].close - 1;
+      returnWindow.addVal(currReturn);
     }
+    if (returnWindow.size() < N)
+      return 0;
+
+    double price = history.back().close;
+    double stdDev = returnWindow.getStdDev();
+    double equity = state.getEquity(price);
+    return (targetVol_ / stdDev) * equity / price;
   }
 
 private:
   double targetVol_{};
-  double returnTotal;
-  std::deque<double> returns;
+  RollingWindow<double> returnWindow{getMinLookback()};
 };
 
 } // namespace Sizers

@@ -35,7 +35,7 @@
     - [ ] random
   - [ ] Sizer  
     - [x] Fixed fractional
-    - [ ] Vol target
+    - [x] Vol target
   - [ ] Risk Manager
     - [ ] notional cap
     - [ ] stop-loss (take-profit)
