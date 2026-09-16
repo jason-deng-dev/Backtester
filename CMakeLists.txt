@@ -41,6 +41,9 @@ add_executable(backtesting_test
   tests/backtesting_test.cc
 )
 
+target_compile_definitions(backtesting_test PRIVATE
+  TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
+
 target_link_libraries(backtesting_test PRIVATE
   GTest::gtest_main
   backtester_core
