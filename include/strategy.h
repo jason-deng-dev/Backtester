@@ -29,7 +29,7 @@ public:
     dq.push_back(val);
     sum += val;
     sumSquared += val * val;
-    if (dq.size() > maxSize) {
+    if (dq.size() > std::size_t(maxSize)) {
       T frontVal = dq.front();
       sum -= frontVal;
       sumSquared -= frontVal * frontVal;

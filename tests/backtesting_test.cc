@@ -1,8 +1,12 @@
 #include "analytics.h"
 #include "datafeed.h"
+#include "riskmanager.h"
+#include "signal.h"
+#include "sizer.h"
 #include "state.h"
 #include "strategy.h"
 #include <gtest/gtest.h>
+#include <vector>
 
 /*
   Precondition: tests/fixtures/aapl_daily.csv via yfinance,
@@ -11,30 +15,30 @@
 */
 
 namespace DataFeedTest {
-  TEST(DataFeedTest, Load) {
-    DataFeed df;
-    EXPECT_FALSE(df.load("wrong file path"));
-    EXPECT_TRUE(df.load(TEST_FIXTURES_DIR "/aapl_daily.csv"));
-    EXPECT_EQ(df.barCount(), 11527);
-  }
+TEST(DataFeedTest, Load) {
+  DataFeed df;
+  EXPECT_FALSE(df.load("wrong file path"));
+  EXPECT_TRUE(df.load(TEST_FIXTURES_DIR "/aapl_daily.csv"));
+  EXPECT_EQ(df.barCount(), 11527);
+}
 
-  TEST(DataFeedTest, Next) {
-    DataFeed df;
-    df.load(TEST_FIXTURES_DIR "/aapl_daily.csv");
-    Bar bar{};
-    df.next(bar);
-    Bar expectBar1{"1980-12-12",        0.09812235087156296, 0.09854894611290255,
-                  0.09812235087156296, 0.09812235087156296, 469033600};
-    EXPECT_EQ(bar, expectBar1);
-    df.next(bar);
-    Bar expectBar2{"1980-12-15",       0.0930032730102539,  0.09342986836701266,
-                  0.0930032730102539, 0.09342986836701266, 175884800};
-    EXPECT_EQ(bar, expectBar2);
-    df.next(bar);
-    Bar expectBar3{"1980-12-16",        0.08617705851793289, 0.08660364832181397,
-                  0.08617705851793289, 0.08660364832181397, 105728000};
-    EXPECT_EQ(bar, expectBar3);
-  }
+TEST(DataFeedTest, Next) {
+  DataFeed df;
+  df.load(TEST_FIXTURES_DIR "/aapl_daily.csv");
+  Bar bar{};
+  df.next(bar);
+  Bar expectBar1{"1980-12-12",        0.09812235087156296, 0.09854894611290255,
+                 0.09812235087156296, 0.09812235087156296, 469033600};
+  EXPECT_EQ(bar, expectBar1);
+  df.next(bar);
+  Bar expectBar2{"1980-12-15",       0.0930032730102539,  0.09342986836701266,
+                 0.0930032730102539, 0.09342986836701266, 175884800};
+  EXPECT_EQ(bar, expectBar2);
+  df.next(bar);
+  Bar expectBar3{"1980-12-16",        0.08617705851793289, 0.08660364832181397,
+                 0.08617705851793289, 0.08660364832181397, 105728000};
+  EXPECT_EQ(bar, expectBar3);
+}
 
 } // namespace DataFeedTest
 
@@ -94,21 +98,39 @@ TEST(StateTest, addExecution) {
 
 } // namespace StateTest
 
-namespace StrategyTest{
-  TEST(StrategyTest, RollingWindow) {
-    RollingWindow<double> rw0{0};
+namespace StrategyTest {
+TEST(StrategyTest, RollingWindow) { RollingWindow<double> rw0{0}; }
 
-  }
-
-  TEST(StrategyTest, NotionalCapRiskManager) {
-    RiskManagers::NotionalCapRiskManager ncr{0.1, RiskManagers::NotionalCapRiskManager::Policy::Correct};
-  }
-
-
-
-
-
+TEST(StrategyTest, NotionalCapRiskManager) {
+  NotionalCapRiskManager ncr{0.1};
+  State st{100, 10};
+  std::vector<Bar> hs{};
+  /*
+  Cases:
+    Long/Short
+      overcap
+      oncap
+      undercap
+      reducing
+      flipping sign
+  */
+  EXPECT_EQ(ncr.generate(1, st, hs), 0) << "empty history check";
+  hs.push_back({"A"});
+  EXPECT_EQ(ncr.generate(0, st, hs), 0) << "0 sizerOutput";
+  hs.pop_back();
+  hs.push_back({"Date", 1});
+  // equity = 100 + 10*1 = 110
+  // capNotional = 110*0.1 = 11
+  // allowedAmount = capNotional / price - netQty = 11/1.0 = 11.0 - 10 = 1
+  EXPECT_EQ(ncr.generate(2, st, hs), 1) << "overcap";
+  EXPECT_EQ(ncr.generate(1, st, hs), 1) << "oncap";
+  EXPECT_EQ(ncr.generate(0.5, st, hs), 0.5) << "undercap";
+  EXPECT_EQ(ncr.generate(-2, st, hs), 0.5) << "reduce";
+  EXPECT_EQ(ncr.generate(-11, st, hs), -11) << "reversalUndercap";
+  EXPECT_EQ(ncr.generate(-21, st, hs), -20) << "reversalOvercap";
 }
+
+} // namespace StrategyTest
 
 // Analytics tests
 TEST(AnalyticsTest, Classify) {

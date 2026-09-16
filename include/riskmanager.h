@@ -29,31 +29,48 @@ ceiling: fraction of equity
 
 class NotionalCapRiskManager : public RiskManager {
 public:
-  enum class Policy { Clamp, Correct };
-  NotionalCapRiskManager(double ceilRatio, Policy policy)
-      : ceilRatio_(ceilRatio), policy_(policy) {}
+  NotionalCapRiskManager(double ceilRatio)
+      : ceilRatio_(ceilRatio) {}
   double generate(double sizerOutput, const State &state,
                   const std::vector<Bar> &history) override {
     if (history.size() == 0 || sizerOutput == 0)
       return 0;
+
     double price = history.back().close;
+
+    // allowed range for notional = [-cap, cap]
     double capNotional = state.getEquity(price) * ceilRatio_;
 
-    double proposedNotional = (state.getNetQty() + sizerOutput) * price;
+    double netQty = state.getNetQty();
+    double newQty = netQty + sizerOutput;
 
-    if (std::abs(capNotional) >= std::abs(proposedNotional) ||
-        state.getNetQty() > state.getNetQty() + sizerOutput) {
+    double proposedNotional = newQty * price;
+
+    // covers undercap, reduction, oncap => rest has to be overcap
+    if (std::abs(capNotional) >= std::abs(proposedNotional)) {
       return sizerOutput;
     }
-    double maxPos = capNotional / price;
-    double allowedAmount = std::abs(maxPos) - std::abs(state.getNetQty());
+    
+    bool stayLong = netQty < netQty + sizerOutput && netQty >= 0;
+    bool stayShort = netQty > netQty + sizerOutput && netQty <= 0;
 
-    return sizerOutput / std::abs(sizerOutput) * allowedAmount;
+    
+
+    if (stayLong || stayShort) {
+      double maxQty = proposedNotional/price;
+      return maxQty - netQty;
+    }
+    // reversal overCap: closing the old side is risk-reducing and always
+    // allowed, then establish up to the cap on the new side
+    else {
+      double capQty = capNotional / price;
+      double newSideSign = sizerOutput > 0 ? 1.0 : -1.0;
+      return newSideSign * capQty - netQty;
+    }
   }
 
 private:
   double ceilRatio_;
-  Policy policy_;
 };
 
 class StopLossRiskManager : public RiskManager {
