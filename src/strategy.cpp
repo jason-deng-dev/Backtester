@@ -31,7 +31,8 @@ public:
   explicit FixedFractionalSizer(double f) : f_(f) {}
   double generate(int signalOutput, const State &state,
                   const std::vector<Bar> &history) override {
-    double price = history.back().open;
+    if (history.empty()) return 0;
+    double price = history.back().close;
     return signalOutput * (f_ * state.getEquity(price)) / price;
   }
 
