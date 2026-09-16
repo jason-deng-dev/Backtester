@@ -108,7 +108,7 @@ class RiskManager {
 public:
   RiskManager(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~RiskManager() = default;
-  virtual double generate(double sizerOutput, const State &state,
+  virtual int generate(double sizerOutput, const State &state,
                           const std::vector<Bar> &history) = 0;
   int getMinLookback() const { return minLookback_; }
 

@@ -1,6 +1,7 @@
 #include "strategy.h"
 #include "datafeed.h"
 #include <cmath>
+#include <cstdlib>
 #include <numeric>
 
 int StrategyImproved::getMove(const State &state, const std::vector<Bar> &history) {
@@ -52,7 +53,7 @@ public:
   explicit VolatilityTargetSizer(int minLookback, double targetVol)
       : Sizer(minLookback), targetVol_(targetVol) {}
 
-  double generate(int signalOutput, State &state,
+  double generate(int signalOutput, const State &state,
                   const std::vector<Bar> &history) override {
     int N = getMinLookback();
 
@@ -84,16 +85,21 @@ to hold at any moment
 
 Notional = shares x price
 
-Hard limit = absolute ceiling, never exceed this amount
-Scaling = how the cap behaves below ceiling 
+ceiling: fraction of equity
 */
 
 class NotionalCapRiskManager : public RiskManager {
 public:
-  NotionalCapRiskManager(double ceil, double ratio) : ceil_(ceil), ratio_(ratio) {}
-  double generate(double sizerOutput, State &state, const std::vector<Bar> &history) override {
+  NotionalCapRiskManager(double ceilRatio, double ratio) : ceilRatio_(ceilRatio), ratio_(ratio) {}
+  int generate(double sizerOutput, const State &state, const std::vector<Bar> &history) override {
     double price = history.back().close;
-    double currNotional = state.getNetQty() * 
+    double capNotional = state.getEquity(price) * ceilRatio_;
+    double proposedNotional = (state.getNetQty() + sizerOutput)*price;
+
+    if (std::abs(capNotional) <= std::abs(proposedNotional)) {
+      return sizerOutput;
+    }
+    double allowedPos = capNotional / price;
 
 
   }
@@ -101,7 +107,7 @@ public:
 
 
 private:
-  double ceil_;
+  double ceilRatio_;
   double ratio_;
 };
 
