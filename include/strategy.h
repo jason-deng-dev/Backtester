@@ -82,40 +82,9 @@ protected:
   }
 };
 
-class Signal {
-public:
-  Signal(int minLookback = 0) : minLookback_(minLookback) {}
-  virtual ~Signal() = default;
-  virtual int generate(const State &state, const std::vector<Bar> &history) = 0;
-  int getMinLookback() const { return minLookback_; }
-
-private:
-  int minLookback_{}; // called by generate to verify we have enough history
-};
-
-class Sizer {
-public:
-  Sizer(int minLookback = 0) : minLookback_(minLookback) {}
-  virtual ~Sizer() = default;
-  virtual double generate(int signalOutput, const State &state,
-                          const std::vector<Bar> &history) = 0;
-  int getMinLookback() const { return minLookback_; }
-
-private:
-  int minLookback_{}; // called by generate to verify we have enough history
-};
-
-class RiskManager {
-public:
-  RiskManager(int minLookback = 0) : minLookback_(minLookback) {}
-  virtual ~RiskManager() = default;
-  virtual double generate(double sizerOutput, const State &state,
-                          const std::vector<Bar> &history) = 0;
-  int getMinLookback() const { return minLookback_; }
-
-private:
-  int minLookback_{}; // called by generate to verify we have enough history
-};
+class Signal;
+class Sizer;
+class RiskManager;
 
 class StrategyImproved {
   Signal &signal_;
@@ -146,30 +115,17 @@ public:
   T getSum() const { return sum; }
   T getSumSquared() const { return sumSquared; }
 
-    // precondition is that caller ensured there are enough data points before
+  // precondition is that caller ensured there are enough data points before
   std::optional<T> getStdDev() const {
     double N = dq.size();
-    if (N < maxSize) return {};
-    return std::sqrt((sumSquared - sum*sum/N)/(N-1));
+    if (N < maxSize)
+      return {};
+    return std::sqrt((sumSquared - sum * sum / N) / (N - 1));
   }
 
 private:
   std::deque<T> dq{};
-  T sum {0};
+  T sum{0};
   T sumSquared{0};
   int maxSize{};
 };
-
-namespace Signals {
-  class BuyHoldSignal;
-}
-
-namespace Sizers {
- class FixedFractionalSizer;
- class VolatilityTargetSizer;
-}
-
-namespace RiskManagers{
-  class NotionalCapRiskManager;
-  class StopLossRiskManager;
-}

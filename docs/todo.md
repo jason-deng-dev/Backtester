@@ -33,12 +33,18 @@
     - [x] buy & hold
     - [ ] z-score reversion
     - [ ] random
-  - [ ] Sizer  
+  - [x] Sizer  
     - [x] Fixed fractional
     - [x] Vol target
+      - [x] getStdDev use std::optional to return not ready
   - [ ] Risk Manager
     - [ ] notional cap
+      - [ ] flips reduction into a buy
+      - [x] divide be zero reachable (sizerOutput)
+      - [ ] passive clamp (order -> 0) / active correction (brings back to notional cap)
+        - [ ] decided by constructor as a mode
     - [ ] stop-loss (take-profit)
+- [x] Move Signal/Sizer/RiskManager to their own .h files
 - [ ] Tests
   - [x] DataFeed
   - [ ] State 
