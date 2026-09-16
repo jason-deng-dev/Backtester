@@ -4,6 +4,7 @@
 #include "state.h"
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <queue>
 
 class Strategy {
@@ -108,7 +109,7 @@ class RiskManager {
 public:
   RiskManager(int minLookback = 0) : minLookback_(minLookback) {}
   virtual ~RiskManager() = default;
-  virtual int generate(double sizerOutput, const State &state,
+  virtual double generate(double sizerOutput, const State &state,
                           const std::vector<Bar> &history) = 0;
   int getMinLookback() const { return minLookback_; }
 
@@ -133,7 +134,7 @@ public:
   virtual void addVal(T val) {
     dq.push_back(val);
     sum += val;
-    sum += val * val;
+    sumSquared += val * val;
     if (dq.size() > maxSize) {
       T frontVal = dq.front();
       sum -= frontVal;
@@ -146,9 +147,9 @@ public:
   T getSumSquared() const { return sumSquared; }
 
     // precondition is that caller ensured there are enough data points before
-  T getStdDev() const {
+  std::optional<T> getStdDev() const {
     double N = dq.size();
-    if (N < maxSize) return -1;
+    if (N < maxSize) return {};
     return std::sqrt((sumSquared - sum*sum/N)/(N-1));
   }
 

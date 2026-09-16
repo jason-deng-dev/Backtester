@@ -69,9 +69,11 @@ public:
       return 0;
 
     double price = history.back().close;
-    double stdDev = returnWindow.getStdDev();
+    std::optional<double> stdDev = returnWindow.getStdDev();
+    // not enough data points
+    if (!stdDev) return 0;
     double equity = state.getEquity(price);
-    return (targetVol_ / stdDev) * equity / price;
+    return (targetVol_ / *stdDev) * equity / price;
   }
 
 private:
@@ -94,7 +96,7 @@ ceiling: fraction of equity
 class NotionalCapRiskManager : public RiskManager {
 public:
   NotionalCapRiskManager(double ceilRatio) : ceilRatio_(ceilRatio) {}
-  int generate(double sizerOutput, const State &state, const std::vector<Bar> &history) override {
+  double generate(double sizerOutput, const State &state, const std::vector<Bar> &history) override {
     if (history.size() == 0) return 0;
     double price = history.back().close;
     double capNotional = state.getEquity(price) * ceilRatio_;
@@ -104,8 +106,8 @@ public:
     if (std::abs(capNotional) >= std::abs(proposedNotional)) {
       return sizerOutput;
     }
-    int maxPos = std::floor(capNotional / price) ;
-    int allowedAmount = std::abs(maxPos) - std::abs(state.getNetQty());
+    double maxPos = capNotional / price;
+    double allowedAmount = std::abs(maxPos) - std::abs(state.getNetQty());
 
     return sizerOutput/std::abs(sizerOutput) * allowedAmount;
   }
@@ -117,7 +119,7 @@ private:
 
 class StopLossRiskManager : public RiskManager {
 public:
-  StopLossRiskManager()
+  StopLossRiskManager(){}
 
 
 };
