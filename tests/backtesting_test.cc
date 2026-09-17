@@ -233,15 +233,141 @@ TEST(RiskManagerTest, TrueRanges) {
 
   
   tr.addTR(2);
-  // ATR = (1 * (6-1)+2)/6 = 7/6 
-  EXPECT_DOUBLE_EQ(*tr.getATR(), 7.0/6);
-  
+  // Wilder pins the divisor at the period: (1*4 + 2)/5
+  EXPECT_DOUBLE_EQ(*tr.getATR(), 6 / 5.0);
+
   tr.addTR(3);
-  // ATR = (7/6 * (7-1)+3)/7 = 10/7 
-  EXPECT_DOUBLE_EQ(*tr.getATR(),10/7.0);
+  // (6/5*4 + 3)/5
+  EXPECT_DOUBLE_EQ(*tr.getATR(), 39 / 25.0);
 
 
 }
+
+TEST(RiskManagerTest, BracketRiskManagerWarmup) {
+  BracketRiskManager brm{2, 1.0, 3.0};
+  State st{100'000, 0};
+  st.addExecution("d0", 100, 100.0); // long 100 @ 100
+
+  std::vector<Bar> hs{};
+  Bar calm{"d", 100, 101, 99, 100, 0}; // TR = 2 vs a 100 prevClose
+
+  hs.push_back(calm);
+  EXPECT_EQ(brm.generate(5, st, hs), 5) << "history < 2 bars: passthrough";
+
+  hs.push_back(calm);
+  hs.back().close = 97; // below the future stop of 98
+  EXPECT_EQ(brm.generate(5, st, hs), 5) << "ATR not seeded yet: passthrough";
+}
+
+TEST(RiskManagerTest, BracketRiskManagerFlatPassthrough) {
+  BracketRiskManager brm{2, 1.0, 3.0};
+  State st{100'000, 0}; // no position: nothing to bracket
+
+  std::vector<Bar> hs{};
+  Bar calm{"d", 100, 101, 99, 100, 0};
+  hs.push_back(calm);
+  brm.generate(25, st, hs);
+  hs.push_back(calm);
+  brm.generate(25, st, hs);
+  hs.push_back(calm);
+  hs.back().close = 97; // beyond any level, but flat means no trigger
+  EXPECT_EQ(brm.generate(25, st, hs), 25) << "flat: sizer passes through";
+}
+
+TEST(RiskManagerTest, BracketRiskManagerLongStop) {
+  BracketRiskManager brm{2, 1.0, 3.0};
+  State st{100'000, 0};
+  st.addExecution("d0", 100, 100.0); // long 100 @ 100
+
+  std::vector<Bar> hs{};
+  Bar calm{"d", 100, 101, 99, 100, 0};
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  EXPECT_EQ(brm.generate(5, st, hs), 5) << "armed, close=100 touches nothing";
+
+  hs.back().close = 97; // close < stop 98
+  EXPECT_EQ(brm.generate(5, st, hs), -100) << "stop fires: full exit";
+  EXPECT_EQ(brm.generate(50, st, hs), -100)
+      << "trigger precedence: sizer's add is discarded";
+}
+
+TEST(RiskManagerTest, BracketRiskManagerLongTake) {
+  BracketRiskManager brm{2, 1.0, 3.0};
+  State st{100'000, 0};
+  st.addExecution("d0", 100, 100.0);
+
+  std::vector<Bar> hs{};
+  Bar calm{"d", 100, 101, 99, 100, 0};
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+
+  hs.back().close = 107; // close > take 106
+  EXPECT_EQ(brm.generate(5, st, hs), -100) << "take-profit fires: full exit";
+}
+
+TEST(RiskManagerTest, BracketRiskManagerShortStop) {
+  BracketRiskManager brm{2, 1.0, 3.0};
+  State st{100'000, 0};
+  st.addExecution("d0", -100, 100.0); // short 100 @ 100
+
+  std::vector<Bar> hs{};
+  Bar calm{"d", 100, 101, 99, 100, 0};
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+
+  hs.back().close = 103; // close > stop 102 (shorts stop out on the way up)
+  EXPECT_EQ(brm.generate(5, st, hs), 100) << "short stop fires: cover to flat";
+}
+
+TEST(RiskManagerTest, BracketRiskManagerShortTake) {
+  BracketRiskManager brm{2, 1.0, 3.0};
+  State st{100'000, 0};
+  st.addExecution("d0", -100, 100.0);
+
+  std::vector<Bar> hs{};
+  Bar calm{"d", 100, 101, 99, 100, 0};
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+
+  hs.back().close = 93; // close < take 94 (shorts take profit on the way down)
+  EXPECT_EQ(brm.generate(5, st, hs), 100) << "short take fires: cover to flat";
+}
+
+TEST(RiskManagerTest, BracketRiskManagerNoTouch) {
+  BracketRiskManager brm{2, 1.0, 3.0};
+  State st{100'000, 0};
+  st.addExecution("d0", 100, 100.0); // long 100 @ 100, stop 98 / take 106
+
+  std::vector<Bar> hs{};
+  Bar calm{"d", 100, 101, 99, 100, 0};
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+  hs.push_back(calm);
+  brm.generate(5, st, hs);
+
+  hs.back().close = 98; // exactly on the stop: strict < means no trigger
+  EXPECT_EQ(brm.generate(5, st, hs), 5) << "touching the level is not crossing";
+  EXPECT_EQ(brm.generate(-40, st, hs), -40)
+      << "normal reductions pass through untouched";
+}
+
 
 } // namespace RiskManagerTest
 
