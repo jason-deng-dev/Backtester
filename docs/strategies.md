@@ -58,6 +58,7 @@ Backtest holds `std::vector<Bar> history` which is passed to Strategy, who passe
 |signal |	What it stresses|
 |----------|----------|
 buy & hold | baseline
+dual moving average cross over | history window
 z-score reversion | rolling-window history; high turnover; per-exit accounting
 random | determinism — seeded, reproducible; plus the null-matching harness
 Donchian/MAE cross | long holds; MAE/MFE on carried positions; opposite sign
@@ -78,10 +79,25 @@ time stop/max holding period|position age
 
 # Implementation Details
 
-## Random signal generator
+## Matched Null (Random signal)
 - produces a random direction {-1,0,+1} that we can test against our strategy signals
 - every time we test a real strategy, run it against random signals with the same trade frequency and hold times
 - so we can see if our strategy's edge is real or just an artifact of the backtest
+
+if flat, with prob p_enter, emit an entry impulse +1 or -1 (weighted by real strategy's long/short split), otherwise 0
+if in position, with prob p_exit, emit exit impulse, otherwise 0
+
+using std:mt19937 seeded via constructor so runs are reprodicble.
+std::direcrete_distribution
+
+to get p_enter/p_exit:
+run real strategy once, count transititions on sign of netQty
+p_enter = (number of flat bars => entry) / (number of flat bars)
+p_exit = (number of in-position bars => exit) / (number of in posiiton bars)
+
+## Z-score 
+
+
 
 ## Bracket Risk Manager
 If doesn't have N periods yet, just pass Sizer output unchanged
