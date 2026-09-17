@@ -15,8 +15,8 @@ int main() {
   df.load("data/nvda_daily.csv");
 
   BuyHoldSignal signal;
-  FixedFractionalSizer sizer{1};
-  NotionalCapRiskManager riskManager{0.1};
+  FixedFractionalSizer sizer{0.90};
+  NotionalCapRiskManager riskManager{1};
 
   Strategy rs{signal, sizer, riskManager};
 
@@ -24,6 +24,8 @@ int main() {
 
   Backtest bt{};
   bt.run(df, rs, st);
+
+  std::cout << "total bars:" <<st.getTotalBars() << " historySize size" << bt.history_.size();
 
   Analytics an{};
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "datafeed.h"
 #include "state.h"
+#include <iostream>
 #include <random>
 #include <stdexcept>
 
@@ -17,8 +18,10 @@ private:
 
 class BuyHoldSignal : public Signal {
   int generate(const State &state, const std::vector<Bar> &history) override {
-    if (history.size() == 0)
+    if (history.size() == 1) {
       return 1;
+    }
+
     if (state.getTotalBars() == history.size() + 1) {
       return -1;
     }

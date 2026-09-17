@@ -26,5 +26,4 @@ void Backtest::run(DataFeed &feed, Strategy &strategy, State &state) {
     }
     state.addBarSnapshot(bar.date, bar.close, bar.low, bar.high);
   }
-  std::cout << "Backtest complete\n";
 }

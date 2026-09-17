@@ -32,7 +32,7 @@
   - [ ] Signal
     - [x] buy & hold
     - [ ] z-score reversion
-    - [ ] random
+    - [x] random
   - [x] Sizer  
     - [x] Fixed fractional
     - [x] Vol target
