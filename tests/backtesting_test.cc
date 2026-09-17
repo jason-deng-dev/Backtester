@@ -7,6 +7,8 @@
 #include "strategy.h"
 #include <gtest/gtest.h>
 #include <optional>
+#include <random>
+#include <stdexcept>
 #include <vector>
 
 /*
@@ -164,8 +166,82 @@ TEST(StateTest, AvgEntryPriceFlatResetShort) {
 
 } // namespace StateTest
 
-
 namespace StrategyTest {
+
+namespace SignalTest {
+TEST(SignalTest, RandomSignal) {
+  std::mt19937 gen{42};
+  EXPECT_THROW(RandomSignal(2, 1, 1, gen), std::invalid_argument);
+  EXPECT_THROW(RandomSignal(1, 2, 1, gen), std::invalid_argument);
+  EXPECT_THROW(RandomSignal(1, 1, 2, gen), std::invalid_argument);
+
+  // below-range violations, and 0/1 are the valid inclusive boundaries
+  EXPECT_THROW(RandomSignal(-0.1, 0.5, 0.5, gen), std::invalid_argument);
+  EXPECT_THROW(RandomSignal(0.5, -0.1, 0.5, gen), std::invalid_argument);
+  EXPECT_THROW(RandomSignal(0.5, 0.5, -0.1, gen), std::invalid_argument);
+  EXPECT_NO_THROW(RandomSignal(0, 0, 0, gen));
+  EXPECT_NO_THROW(RandomSignal(1, 1, 1, gen));
+}
+
+// boundary probabilities make every draw deterministic: bernoulli(1) always
+// fires, bernoulli(0) never does, so no seed dependence anywhere below
+
+TEST(SignalTest, RandomSignalEnterLong) {
+  std::mt19937 gen{42};
+  RandomSignal rs(1, 0, 1, gen); // always enter, always long
+  State st{100'000, 0};
+  std::vector<Bar> hs{};
+  for (int i = 0; i < 10; i++)
+    EXPECT_EQ(rs.generate(st, hs), 1) << "flat + always-enter-long";
+}
+
+TEST(SignalTest, RandomSignalEnterShort) {
+  std::mt19937 gen{42};
+  RandomSignal rs(1, 0, 0, gen); // always enter, always short
+  State st{100'000, 0};
+  std::vector<Bar> hs{};
+  for (int i = 0; i < 10; i++)
+    EXPECT_EQ(rs.generate(st, hs), -1) << "flat + always-enter-short";
+}
+
+TEST(SignalTest, RandomSignalNeverEnter) {
+  std::mt19937 gen{42};
+  RandomSignal rs(0, 1, 0.5, gen); // pEnter = 0
+  State st{100'000, 0};
+  std::vector<Bar> hs{};
+  for (int i = 0; i < 10; i++)
+    EXPECT_EQ(rs.generate(st, hs), 0) << "flat + never enter: silent";
+}
+
+TEST(SignalTest, RandomSignalExitLong) {
+  std::mt19937 gen{42};
+  RandomSignal rs(0, 1, 0.5, gen); // always exit when in position
+  State st{100'000, 100};          // long
+  std::vector<Bar> hs{};
+  for (int i = 0; i < 10; i++)
+    EXPECT_EQ(rs.generate(st, hs), -1) << "long position exits with a sell";
+}
+
+TEST(SignalTest, RandomSignalExitShort) {
+  std::mt19937 gen{42};
+  RandomSignal rs(0, 1, 0.5, gen);
+  State st{100'000, -100}; // short
+  std::vector<Bar> hs{};
+  for (int i = 0; i < 10; i++)
+    EXPECT_EQ(rs.generate(st, hs), 1) << "short position exits with a buy";
+}
+
+TEST(SignalTest, RandomSignalHoldPosition) {
+  std::mt19937 gen{42};
+  RandomSignal rs(1, 0, 0.5, gen); // pExit = 0
+  State st{100'000, 100};
+  std::vector<Bar> hs{};
+  for (int i = 0; i < 10; i++)
+    EXPECT_EQ(rs.generate(st, hs), 0)
+        << "in position: no exits, and no mid-position entries";
+}
+
+} // namespace SignalTest
 
 namespace RiskManagerTest {
 
@@ -231,7 +307,6 @@ TEST(RiskManagerTest, TrueRanges) {
   tr.addTR(1);
   EXPECT_DOUBLE_EQ(*tr.getATR(), 1.0);
 
-  
   tr.addTR(2);
   // Wilder pins the divisor at the period: (1*4 + 2)/5
   EXPECT_DOUBLE_EQ(*tr.getATR(), 6 / 5.0);
@@ -239,8 +314,6 @@ TEST(RiskManagerTest, TrueRanges) {
   tr.addTR(3);
   // (6/5*4 + 3)/5
   EXPECT_DOUBLE_EQ(*tr.getATR(), 39 / 25.0);
-
-
 }
 
 TEST(RiskManagerTest, BracketRiskManagerWarmup) {
@@ -367,7 +440,6 @@ TEST(RiskManagerTest, BracketRiskManagerNoTouch) {
   EXPECT_EQ(brm.generate(-40, st, hs), -40)
       << "normal reductions pass through untouched";
 }
-
 
 } // namespace RiskManagerTest
 
