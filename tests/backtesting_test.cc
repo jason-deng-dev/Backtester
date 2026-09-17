@@ -6,6 +6,7 @@
 #include "state.h"
 #include "strategy.h"
 #include <gtest/gtest.h>
+#include <optional>
 #include <vector>
 
 /*
@@ -163,10 +164,12 @@ TEST(StateTest, AvgEntryPriceFlatResetShort) {
 
 } // namespace StateTest
 
-namespace StrategyTest {
-TEST(StrategyTest, RollingWindow) { RollingWindow<double> rw0{0}; }
 
-TEST(StrategyTest, LongNotionalCapRiskManager) {
+namespace StrategyTest {
+
+namespace RiskManagerTest {
+
+TEST(RiskManagerTest, LongNotionalCapRiskManager) {
   NotionalCapRiskManager ncr{0.1};
   State st{100, 10};
   std::vector<Bar> hs{};
@@ -195,7 +198,7 @@ TEST(StrategyTest, LongNotionalCapRiskManager) {
   EXPECT_EQ(ncr.generate(-22, st, hs), -21) << "reversalOvercap";
 }
 
-TEST(StrategyTest, ShortNotionalCapRiskmanager) {
+TEST(RiskManagerTest, ShortNotionalCapRiskmanager) {
   NotionalCapRiskManager ncr{0.1};
   State st{100, -5};
   std::vector<Bar> hs{};
@@ -216,6 +219,20 @@ TEST(StrategyTest, ShortNotionalCapRiskmanager) {
   State st2{100, -12}; // equity = 88 -> capQty = 8.8
   EXPECT_EQ(ncr.generate(2, st2, hs), 2) << "reduce while overcap";
 }
+
+TEST(RiskManagerTest, TrueRanges) {
+  TrueRanges tr{5};
+  tr.addTR(1);
+  EXPECT_EQ(tr.getATR(), std::nullopt) << "1/5";
+  tr.addTR(1);
+  tr.addTR(1);
+  tr.addTR(1);
+  EXPECT_EQ(tr.getATR(), std::nullopt) << "4/5";
+  tr.addTR(1);
+  EXPECT_DOUBLE_EQ(*tr.getATR(), 1.0);
+}
+
+} // namespace RiskManagerTest
 
 } // namespace StrategyTest
 
