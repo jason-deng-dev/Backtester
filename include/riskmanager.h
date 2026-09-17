@@ -93,13 +93,13 @@ public:
     if (count == ATR_range_) {
       ATR = total / double(count);
     } else {
-      ATR = (ATR * (count - 1) + TR) / count;
+      ATR = (ATR * (ATR_range_ - 1) + TR) / ATR_range_;
     }
   }
 
 private:
   double ATR{};
-  int total = 0;
+  double total = 0;
   int count{};
   int ATR_range_{};
 };
@@ -109,28 +109,45 @@ class BracketRiskManager : public RiskManager {
 public:
   explicit BracketRiskManager(int ATR_range, double stopLossMulti,
                               double takeProfitMulti)
-      : RiskManager(ATR_range), trs(ATR_range), stopLossMulti_(stopLossMulti),
-        takeProfitMulti_(takeProfitMulti) {}
+      : RiskManager(ATR_range), trs(ATR_range), stopMult(stopLossMulti),
+        takeMult(takeProfitMulti) {}
 
   double generate(double sizerOutput, const State &state,
                   const std::vector<Bar> &history) override {
     if (history.size() < 2)
       return sizerOutput;
-    auto &currBar = history.back();
-    auto &prevBar = history[history.size() - 2];
+
+    const auto &currBar = history.back();
+    const auto &prevBar = history[history.size() - 2];
 
     double TR = std::max({currBar.high - currBar.low,
                           std::abs(currBar.high - prevBar.close),
                           std::abs(currBar.low - prevBar.close)});
     trs.addTR(TR);
     auto ATR = trs.getATR();
-    if (!ATR) return sizerOutput;
+    if (!ATR || state.getNetQty() == 0)
+      return sizerOutput;
 
+    double stopDistance = *ATR * stopMult;
+    double takeDistance = *ATR * takeMult;
+    double entryPrice = state.getAvgEntryPrice();
 
+    int dir = state.getNetQty() >= 0 ? 1 : -1;
+
+    double stopPrice = entryPrice - dir * stopDistance;
+    double takePrice = entryPrice + dir * takeDistance;
+
+    bool reachStop = dir * (currBar.close - stopPrice) < 0;
+    bool reachTake = dir * (currBar.close - takePrice) > 0;
+
+    if (reachStop || reachTake)
+      return -state.getNetQty();
+    else
+      return sizerOutput;
   }
 
 private:
   TrueRanges trs;
-  double stopLossMulti_;
-  double takeProfitMulti_;
+  double stopMult;
+  double takeMult;
 };

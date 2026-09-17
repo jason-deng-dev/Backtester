@@ -37,11 +37,11 @@
     - [x] Fixed fractional
     - [x] Vol target
       - [x] getStdDev use std::optional to return not ready
-  - [ ] Risk Manager
+  - [x] Risk Manager
     - [x] notional cap
       - [x] flips reduction into a buy
       - [x] divide be zero reachable (sizerOutput)
-    - [ ] BracketRiskManger (stop-loss / take-profit)
+    - [x] BracketRiskManger (stop-loss / take-profit)
 - [x] Move Signal/Sizer/RiskManager to their own .h files
 - [x] Replace old Strategy implementation with new
 - [x] State should manage and track it's own current position entry price

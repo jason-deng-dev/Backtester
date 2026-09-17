@@ -89,8 +89,6 @@ If doesn't have N periods yet, just pass Sizer output unchanged
 Using ATR (Average True Range)
 - denominates the stop in units of the instrument's own volatiliy
 
-stop distance = k * ATR 
-
 TR = max(
     High - Low,
     |High - Previous Close|,
@@ -101,6 +99,23 @@ ATR = smoothed average over True Range over N periods
 
 ATR_N = mean(TR_1, ... TR_N)
 ATR_{N+1} = (ATR_N × (N-1) + TR_{N+1}) / N
+
+stop distance = stop Loss multiplier * ATR 
+take distance = take profit multiplier * ATR
+
+Long:
+stop price = entry price - stop distance 
+take price = entry price + take distance
+
+Short:
+stop price = entry price + stop distance
+take price = entry price - take distance 
+
+Behavior:
+- stops are evaulated on close price
+- Stop hits before Take (assume worst cast, since we can't know from data which hit first)
+- takes precedence over
+
 
 
 
