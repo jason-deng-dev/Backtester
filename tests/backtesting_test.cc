@@ -106,9 +106,9 @@ TEST(StateTest, LongAvgEntryPrice) {
   st.addExecution("d2", -10, 10);
   EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10.0) << "reducing long position";
   st.addExecution("d3", 50, 20);
-  // (10*100 + 20*50)/(100+50) = 2000/150 =
-  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 2000 / 150.0)
-      << "adding long position";
+  // d2 leaves 90 shares @ 10: (10*90 + 20*50)/(90+50)
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 1900 / 140.0)
+      << "adding long position after reduction";
   EXPECT_EQ(st.getNetQty(), 140);
   st.addExecution("d4", -150, 10);
   EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10) << "reverse long";
@@ -123,13 +123,42 @@ TEST(StateTest, ShortAvgEntryPrice) {
   st.addExecution("d2", 10, 10);
   EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10.0) << "reducing short position";
   st.addExecution("d3", -50, 20);
-  // (10*100 + 20*50)/(100+50) = 2000/150 =
-  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 2000 / 150.0)
-      << "adding short position";
+  // d2 leaves 90 shares @ 10: (10*90 + 20*50)/(90+50)
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 1900 / 140.0)
+      << "adding short position after reduction";
 
   EXPECT_EQ(st.getNetQty(), -140);
   st.addExecution("d4", 150, 10);
   EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10) << "reverse short";
+}
+
+TEST(StateTest, AvgEntryPriceFlatResetLong) {
+  State st{10'000, 0};
+  st.addExecution("d1", 100, 10);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10.0);
+  st.addExecution("d2", -100, 15);
+  ASSERT_EQ(st.getNetQty(), 0) << "position fully closed";
+
+  // reopening starts a fresh episode, it must not reuse the old basis
+  st.addExecution("d3", 50, 30);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 30.0) << "reopen long after flat";
+
+  st.addExecution("d4", -50, 40);
+  ASSERT_EQ(st.getNetQty(), 0);
+  st.addExecution("d5", -75, 8);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 8.0) << "open short after flat";
+}
+
+TEST(StateTest, AvgEntryPriceFlatResetShort) {
+  State st{10'000, 0};
+  st.addExecution("d1", -100, 10);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10.0);
+  st.addExecution("d2", 100, 12);
+  ASSERT_EQ(st.getNetQty(), 0) << "short fully covered";
+
+  // with a stale entryQty of -100 here, the old formula divides by zero
+  st.addExecution("d3", 100, 30);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 30.0) << "reopen long after short";
 }
 
 } // namespace StateTest
