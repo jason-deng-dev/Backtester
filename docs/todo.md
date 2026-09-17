@@ -38,17 +38,16 @@
     - [x] Vol target
       - [x] getStdDev use std::optional to return not ready
   - [ ] Risk Manager
-    - [ ] notional cap
-      - [ ] flips reduction into a buy
+    - [x] notional cap
+      - [x] flips reduction into a buy
       - [x] divide be zero reachable (sizerOutput)
-      - [ ] passive clamp (order -> 0) / active correction (brings back to notional cap)
-        - [ ] decided by constructor as a mode
-    - [ ] stop-loss (take-profit)
+    - [ ] BracketRiskManger (stop-loss / take-profit)
 - [x] Move Signal/Sizer/RiskManager to their own .h files
 - [x] Replace old Strategy implementation with new
 - [ ] Tests
   - [x] DataFeed
-  - [ ] State 
+  - [x] State 
   - [ ] Strategy
   - [ ] Backtest
   - [ ] Analytics
+- [ ] Monte Carlo 
