@@ -54,3 +54,4 @@ private:
   T sumSquared{0};
   int maxSize{};
 };
+

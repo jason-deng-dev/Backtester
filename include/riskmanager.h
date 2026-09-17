@@ -80,7 +80,7 @@ class BracketRiskManager : public RiskManager {
     needs acess to avgEntry price to make decision about if we reached Take profit or Stop loss
 
     Position has ONE stop and ONE target
-    - the levels get recomputed as the average entry moves
+    - the levels get recomputed as the average entry
 
 
   */

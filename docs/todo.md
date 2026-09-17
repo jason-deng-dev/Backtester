@@ -44,6 +44,8 @@
     - [ ] BracketRiskManger (stop-loss / take-profit)
 - [x] Move Signal/Sizer/RiskManager to their own .h files
 - [x] Replace old Strategy implementation with new
+- [x] State should manage and track it's own current position entry price
+  - [x] state.getEntryPrice()
 - [ ] Tests
   - [x] DataFeed
   - [x] State 
