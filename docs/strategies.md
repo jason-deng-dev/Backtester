@@ -58,29 +58,25 @@ Backtest holds `std::vector<Bar> history` which is passed to Strategy, who passe
 |signal |	What it stresses|
 |----------|----------|
 buy & hold | baseline
-dual moving average cross over | history window
-z-score reversion | rolling-window history; high turnover; per-exit accounting
 random | determinism — seeded, reproducible; plus the null-matching harness
-Donchian/MAE cross | long holds; MAE/MFE on carried positions; opposite sign
+z-score reversion | rolling-window history; high turnover; per-exit accounting
+
 
 ## Sizer:
 | behavior |	What it stresses|
 |----------|----------|
 Fixed fractional | shares = (f x equity) / price 
 Vol target: shares | (targetVol / σ) × equity / price
-Risk-based: shares | (equity x risk%) / (entry-stop)
 
 ## Risk Manager:
 | behavior | What it stresses|
 |----------|-----------------|
 notional/exposure cap|the risk↔sizer interface — cheapest proof the axis does anything
 stop-loss (take-profit) | intrabar fill modelling
-time stop/max holding period|position age
 
 # Implementation Details
 
 ## Matched Null (Random signal)
-- produces a random direction {-1,0,+1} that we can test against our strategy signals
 - every time we test a real strategy, run it against random signals with the same trade frequency and hold times
 - so we can see if our strategy's edge is real or just an artifact of the backtest
 
@@ -88,7 +84,8 @@ if flat, with prob p_enter, emit an entry impulse +1 or -1 (weighted by real str
 if in position, with prob p_exit, emit exit impulse, otherwise 0
 
 using std:mt19937 seeded via constructor so runs are reprodicble.
-std::direcrete_distribution
+
+std::direcrete_distribution for weighted direction draw (long or short)
 
 to get p_enter/p_exit:
 run real strategy once, count transititions on sign of netQty
