@@ -89,7 +89,9 @@ public:
 
   void addTR(double TR) {
     count++;
-    total += TR;
+    if (count <= ATR_range_) {
+      total += TR;
+    }
     if (count == ATR_range_) {
       ATR = total / double(count);
     } else {
