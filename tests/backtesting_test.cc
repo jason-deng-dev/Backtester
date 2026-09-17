@@ -96,6 +96,42 @@ TEST(StateTest, addExecution) {
   EXPECT_DOUBLE_EQ(st.getEquity(120.0), equityBefore);
 }
 
+TEST(StateTest, LongAvgEntryPrice) {
+  State st{10'000, 0};
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 0);
+  st.addExecution("d1", 100, 10);
+  // 100*10/10 = 100
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10.0)
+      << "adding long position from 0";
+  st.addExecution("d2", -10, 10);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10.0) << "reducing long position";
+  st.addExecution("d3", 50, 20);
+  // (10*100 + 20*50)/(100+50) = 2000/150 =
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 2000 / 150.0)
+      << "adding long position";
+  EXPECT_EQ(st.getNetQty(), 140);
+  st.addExecution("d4", -150, 10);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10) << "reverse long";
+}
+
+TEST(StateTest, ShortAvgEntryPrice) {
+  State st{10'000, 0};
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 0);
+  st.addExecution("d1", -100, 10);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10.0)
+      << "adding short position from 0";
+  st.addExecution("d2", 10, 10);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10.0) << "reducing short position";
+  st.addExecution("d3", -50, 20);
+  // (10*100 + 20*50)/(100+50) = 2000/150 =
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 2000 / 150.0)
+      << "adding short position";
+
+  EXPECT_EQ(st.getNetQty(), -140);
+  st.addExecution("d4", 150, 10);
+  EXPECT_DOUBLE_EQ(st.getAvgEntryPrice(), 10) << "reverse short";
+}
+
 } // namespace StateTest
 
 namespace StrategyTest {
@@ -139,11 +175,13 @@ TEST(StrategyTest, ShortNotionalCapRiskmanager) {
   // capNotional = 95*0.1 = 9.5 -> capQty = 9.5 shares
   EXPECT_EQ(ncr.generate(-2, st, hs), -2) << "undercap increase short";
   EXPECT_EQ(ncr.generate(-4.5, st, hs), -4.5) << "oncap short";
-  EXPECT_EQ(ncr.generate(-6, st, hs), -4.5) << "overcap increase short clamps to cap";
+  EXPECT_EQ(ncr.generate(-6, st, hs), -4.5)
+      << "overcap increase short clamps to cap";
   EXPECT_EQ(ncr.generate(2, st, hs), 2) << "reduce short";
   EXPECT_EQ(ncr.generate(5, st, hs), 5) << "close out to flat";
   EXPECT_EQ(ncr.generate(8, st, hs), 8) << "reversal undercap";
-  EXPECT_EQ(ncr.generate(20, st, hs), 14.5) << "reversal overcap: close 5, establish 9.5";
+  EXPECT_EQ(ncr.generate(20, st, hs), 14.5)
+      << "reversal overcap: close 5, establish 9.5";
 
   // already over cap: risk-reducing orders must pass untouched
   State st2{100, -12}; // equity = 88 -> capQty = 8.8
