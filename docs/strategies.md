@@ -83,23 +83,29 @@ time stop/max holding period|position age
 - every time we test a real strategy, run it against random signals with the same trade frequency and hold times
 - so we can see if our strategy's edge is real or just an artifact of the backtest
 
-## Buy & hold
-Period 0 use all of cash to buy maximum number of shares that we can afford
-Period N sell everything
+## Bracket Risk Manager
+If doesn't have N periods yet, just pass Sizer output unchanged
 
-Signal
-- produces +1 on first trading period
-- produces -1 on last trading period
+Using ATR (Average True Range)
+- denominates the stop in units of the instrument's own volatiliy
 
-Sizing
-- max amount I can buy when buying
-- max amount I can sell when selling
+stop distance = k * ATR 
 
-Risk
-- NaN
+TR = max(
+    High - Low,
+    |High - Previous Close|,
+    |Low  - Previous Close|
+)
+
+ATR = smoothed average over True Range over N periods
+
+ATR_N = mean(TR_1, ... TR_N)
+ATR_{N+1} = (ATR_N × (N-1) + TR_{N+1}) / N
+
+
 
 # Handling insufficient history data
-if we don't have enough bar data stored inside std::vector<Bar> history passed to Signal/Sizer/RiskManager, to satisify minLookback (set at construction of Signal/Sizer/RiskManager)
+if we don't have enough bar data stored inside `std::vector<Bar>` history passed to Signal/Sizer/RiskManager, to satisify minLookback (set at construction of Signal/Sizer/RiskManager)
 
 Signals, Sizer and RiskManager will return 0, meaning the decision of the strategy on that bar is to do nothing
 

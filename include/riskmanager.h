@@ -2,7 +2,11 @@
 
 #include "datafeed.h"
 #include "state.h"
+#include "strategy.h"
+#include <algorithm>
 #include <cstdlib>
+#include <deque>
+#include <optional>
 #include <vector>
 
 class RiskManager {
@@ -27,7 +31,7 @@ class NotionalCapRiskManager : public RiskManager {
   ceiling: fraction of equity
   */
 public:
-  NotionalCapRiskManager(double ceilRatio) : ceilRatio_(ceilRatio) {}
+  explicit NotionalCapRiskManager(double ceilRatio) : ceilRatio_(ceilRatio) {}
   double generate(double sizerOutput, const State &state,
                   const std::vector<Bar> &history) override {
     if (history.size() == 0 || sizerOutput == 0)
@@ -72,18 +76,61 @@ private:
   double ceilRatio_;
 };
 
-class BracketRiskManager : public RiskManager {
-  /*
-    given the current position and current market state, should I exit (or
-    reduce) this position to limit loss
-
-    needs acess to avgEntry price to make decision about if we reached Take profit or Stop loss
-
-    Position has ONE stop and ONE target
-    - the levels get recomputed as the average entry
-
-
-  */
+class TrueRanges {
 public:
-  BracketRiskManager() {}
+  explicit TrueRanges(int ATR_range) : ATR_range_(ATR_range) {};
+
+  std::optional<double> getATR() {
+    if (count < ATR_range_)
+      return std::nullopt;
+    else
+      return ATR;
+  }
+
+  void addTR(double TR) {
+    count++;
+    total += TR;
+    if (count == ATR_range_) {
+      ATR = total / double(count);
+    } else {
+      ATR = (ATR * (count - 1) + TR) / count;
+    }
+  }
+
+private:
+  double ATR{};
+  int total = 0;
+  int count{};
+  int ATR_range_{};
+};
+
+class BracketRiskManager : public RiskManager {
+
+public:
+  explicit BracketRiskManager(int ATR_range, double stopLossMulti,
+                              double takeProfitMulti)
+      : RiskManager(ATR_range), trs(ATR_range), stopLossMulti_(stopLossMulti),
+        takeProfitMulti_(takeProfitMulti) {}
+
+  double generate(double sizerOutput, const State &state,
+                  const std::vector<Bar> &history) override {
+    if (history.size() < 2)
+      return sizerOutput;
+    auto &currBar = history.back();
+    auto &prevBar = history[history.size() - 2];
+
+    double TR = std::max({currBar.high - currBar.low,
+                          std::abs(currBar.high - prevBar.close),
+                          std::abs(currBar.low - prevBar.close)});
+    trs.addTR(TR);
+    auto ATR = trs.getATR();
+    if (!ATR) return sizerOutput;
+
+
+  }
+
+private:
+  TrueRanges trs;
+  double stopLossMulti_;
+  double takeProfitMulti_;
 };

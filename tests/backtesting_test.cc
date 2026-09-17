@@ -230,6 +230,17 @@ TEST(RiskManagerTest, TrueRanges) {
   EXPECT_EQ(tr.getATR(), std::nullopt) << "4/5";
   tr.addTR(1);
   EXPECT_DOUBLE_EQ(*tr.getATR(), 1.0);
+
+  
+  tr.addTR(2);
+  // ATR = (1 * (6-1)+2)/6 = 7/6 
+  EXPECT_DOUBLE_EQ(*tr.getATR(), 7.0/6);
+  
+  tr.addTR(3);
+  // ATR = (7/6 * (7-1)+3)/7 = 10/7 
+  EXPECT_DOUBLE_EQ(*tr.getATR(),10/7.0);
+
+
 }
 
 } // namespace RiskManagerTest
