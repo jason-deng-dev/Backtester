@@ -32,6 +32,7 @@
   - [ ] Signal
     - [x] buy & hold
     - [ ] z-score reversion
+    - [ ] moving average crossover
     - [x] random
   - [x] Sizer  
     - [x] Fixed fractional

@@ -60,6 +60,7 @@ Backtest holds `std::vector<Bar> history` which is passed to Strategy, who passe
 buy & hold | baseline
 random | determinism — seeded, reproducible; plus the null-matching harness
 z-score reversion | rolling-window history; high turnover; per-exit accounting
+MA cross over | nested lookbacks (fast/slow), cross/edge detection
 
 
 ## Sizer:
@@ -92,9 +93,67 @@ run real strategy once, count transititions on sign of netQty
 p_enter = (number of flat bars => entry) / (number of flat bars)
 p_exit = (number of in-position bars => exit) / (number of in posiiton bars)
 
-## Z-score 
+## Z-score mean-reversion
+when series moves usually far from it's recent average, it will eventually move back toward that average
+
+nMean = rolling mean over N bars
+pCurr = current price
+nStd = rolling standard deviation over last N bars
+z = how many standard deviation pCurr is from its recent mean
+
+z = (pCurr-nMean)/nStd
+
+z = 0 : at the recent average
+z = +2 : 2 standard deviations above average
+z = -2 : 2 standard deviations above average
+
+high z -> overbought -> expect price to fall -> short
+low z -> oversold -> expect price to sell -> long
+near z = 0 -> no edge -> flat or exit
+
+Long:
+entry: z <= -entryZ
+exit:  z >= exitZ
+
+Short:
+entry: z >= entryZ
+exit:  z <= -exitZ 
 
 
+parameters:
+N lookback
+entryZ = 2.0
+exitZ = 0.0
+
+## Moving Average crossover
+trend following signal
+- compares a fast moving average and slow moving average
+- when fast avg crosses above slow ave, trend is bullish
+- when fast avg cross below slow avg, trend is bearish
+
+parameters:
+fastN: short lookback (ex: 20)
+slowN: long lookback  (ex: 50)
+
+fastAvg = moving avg(past fastN history)
+slowAvg = moving avg(past slowN history)
+
+Types of moving averages:
+
+Simple moving average (SMA)
+SMA_t = (1/N)∑(i=0 to N-1) P_{t-i}
+
+Exponential Moving Average (EMA)
+EMA_t = x*P_t + (1-x)EMA_{t-1}
+x = 2/(N+1)
+
+EMA reacts faster to recent prices than SMA, many crossover use EMA for fast line, and SMA or EMA for slow line
+
+if fastAvg > slowAvg : uptrend -> long
+if fastAvg < slowAvg : downtrend -> short or flat
+
+enter long when fast cross above slow
+enter short when fast cross below slow
 
 ## Bracket Risk Manager
 If doesn't have N periods yet, just pass Sizer output unchanged
