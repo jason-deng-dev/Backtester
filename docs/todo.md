@@ -67,8 +67,8 @@
       - [x] RiskManagerTest
         - [x] NotionalCap
         - [x] Bracket
-    - [ ] Backtest
-    - [ ] Analytics
+    - [x] Backtest
+    - [x] Analytics
 
 
 
