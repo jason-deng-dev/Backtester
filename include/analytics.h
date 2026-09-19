@@ -7,6 +7,7 @@
 #include <deque>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,37 @@ inline Outcome classify(double pnl) {
   if (pnl > 0)
     return Outcome::Win;
   return pnl < 0 ? Outcome::Loss : Outcome::BreakEven;
+}
+
+// precondition: v is sorted ascending
+inline std::optional<double> median(const std::vector<double> &v) {
+  if (v.empty())
+    return std::nullopt;
+  const std::size_t n = v.size();
+  return (n % 2) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
+}
+
+// upper tail quantile: p fraction of the sample is <= the result
+// precondition: v is sorted ascending
+// enforce minNeeded so we have statistically valuable percentile result
+inline std::optional<double> percentile(const std::vector<double> &v,
+                                        double p) {
+  if (v.empty() || p < 0 || p > 1)
+    return std::nullopt;
+  if (p >= 1.0)
+    return v.back();
+
+  // 1/(1-p) can land an ULP above its true integer (1-0.9 = 0.0999...8,
+  // so 1/(1-0.9) = 10.000...2); without the epsilon ceil would demand
+  // 22 samples for p90 instead of the documented 20
+  const std::size_t minNeeded =
+      std::ceil(1.0 / (1.0 - p) - 1e-9) * 2;
+  const std::size_t n = v.size();
+  if (n < minNeeded)
+    return std::nullopt;
+
+  const std::size_t k = std::clamp<std::size_t>(std::ceil(p * n), 1, n);
+  return v[k - 1];
 }
 
 struct Excursion {

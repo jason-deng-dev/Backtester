@@ -263,32 +263,6 @@ std::vector<Excursion> filter(const std::vector<Excursion> &excursions,
   return v;
 }
 
-// precondition: v is sorted ascending
-std::optional<double> median(const std::vector<double> &v) {
-  if (v.empty())
-    return std::nullopt;
-  const std::size_t n = v.size();
-  return (n % 2) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
-}
-
-// upper tail quantile: p fraction of the sample is <= the result
-// precondition: v is sorted ascending
-// enforce minNeeded so we have statistically valuable percentile result
-std::optional<double> percentile(const std::vector<double> &v, double p) {
-  if (v.empty() || p < 0 || p > 1)
-    return std::nullopt;
-  if (p >= 1.0)
-    return v.back();
-
-  const std::size_t minNeeded = std::ceil(1.0 / (1.0 - p)) * 2;
-  const std::size_t n = v.size();
-  if (n < minNeeded)
-    return std::nullopt;
-
-  const std::size_t k = std::clamp<std::size_t>(std::ceil(p * n), 1, n);
-  return v[k - 1];
-}
-
 struct ExcursionSummary {
   std::size_t n{};
   std::optional<double> maeMedian, maeP90, maeP95;
