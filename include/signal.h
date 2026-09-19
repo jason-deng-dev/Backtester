@@ -115,14 +115,60 @@ private:
 
 class MovingAverageCrossoverSignal : public Signal {
 public:
-  enum AvgType { SMA, EMA };
+  enum class AvgType { SMA, EMA };
 
   explicit MovingAverageCrossoverSignal(int fastN, int slowN,
                                         AvgType fastAvgType,
                                         AvgType slowAvgType)
-      : fastWindow(fastN), slowWindow(slowN) {}
+      : fastAvgType_(fastAvgType), slowAvgType_(slowAvgType), fastWindow(fastN),
+        slowWindow(slowN) {}
+
+  int generate(const State &state, const std::vector<Bar> &history) override {
+    if (history.size() == 0)
+      return 0;
+
+    const double price = history.back().close;
+    fastWindow.addVal(price);
+    slowWindow.addVal(price);
+
+    auto slowAvg = slowAvgType_ == AvgType::SMA ? slowWindow.getSMA()
+                                                : slowWindow.getEMA();
+
+    // insufficent price history
+    if (!slowAvg)
+      return 0;
+
+    auto fastAvg = fastAvgType_ == AvgType::SMA ? fastWindow.getSMA()
+                                                : fastWindow.getEMA();
+
+    const double diff = *fastAvg - *slowAvg;
+    const double eps = 1e-21;
+    int signal = 0;
+    if (diff > eps) {
+      signal = 1;
+    } else if (diff < -eps) {
+      signal = -1;
+    }
+
+    if (trendState == -1 && signal == 1) {
+      trendState = 1;
+      return 1;
+    }
+    if (trendState == 1 && signal == -1) {
+      trendState = -1;
+      return -1;
+    }
+    if (trendState == 0 && signal != 0) {
+      trendState = signal;
+    }
+    return 0;
+  }
 
 private:
+  // 0 if neutral, 1 if fastAvg > slowAvg, -1 if fastAvg < slowAvg
+  int trendState = 0;
+  AvgType fastAvgType_;
+  AvgType slowAvgType_;
   RollingWindow<double> fastWindow;
   RollingWindow<double> slowWindow;
 };
