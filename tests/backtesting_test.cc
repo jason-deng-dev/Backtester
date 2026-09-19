@@ -6,8 +6,10 @@
 #include "state.h"
 #include "strategy.h"
 #include <gtest/gtest.h>
+#include <numeric>
 #include <optional>
 #include <random>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -948,5 +950,229 @@ TEST(AnalyticsTest, Classify) {
   EXPECT_EQ(classify(0), Outcome::BreakEven);
   EXPECT_EQ(classify(1), Outcome::Win);
   EXPECT_EQ(classify(-1), Outcome::Loss);
+}
+
+// handleExecution is observable only through the public EpisodeState it
+// mutates: open lots, notionals, weighted average entry price.
+
+// adding to a position blends the average entry price
+TEST(AnalyticsTest, HandleExecutionWeightedAvgEntry) {
+  Analytics an;
+  EpisodeState es{};
+  an.handleExecution({"d1", 10, 100.0}, es);
+  an.handleExecution({"d2", 10, 120.0}, es);
+  EXPECT_DOUBLE_EQ(es.avgEntryPrice, 110.0);
+  ASSERT_EQ(es.openPositions.size(), 2);
+  EXPECT_DOUBLE_EQ(es.entryNotional, 2200.0);
+}
+
+// a partial close shrinks the front lot (FIFO), priced at execution price
+TEST(AnalyticsTest, HandleExecutionPartialClose) {
+  Analytics an;
+  EpisodeState es{};
+  an.handleExecution({"d1", 10, 100.0}, es);
+  an.handleExecution({"d2", -4, 110.0}, es);
+  ASSERT_EQ(es.openPositions.size(), 1);
+  EXPECT_EQ(es.openPositions.front().qty, 6);
+  EXPECT_DOUBLE_EQ(es.exitNotional, 440.0);
+  EXPECT_DOUBLE_EQ(es.avgEntryPrice, 100.0) << "close does not move entry";
+}
+
+// a flip closes the long episode and opens a fresh short lot with the
+// remainder: 10 long @100 closed by 15 @110 -> short 5 @110
+TEST(AnalyticsTest, HandleExecutionFlip) {
+  Analytics an;
+  EpisodeState es{};
+  an.handleExecution({"d1", 10, 100.0}, es);
+  an.handleExecution({"d2", -15, 110.0}, es);
+  ASSERT_EQ(es.openPositions.size(), 1);
+  EXPECT_EQ(es.openPositions.front().direction, -1);
+  EXPECT_EQ(es.openPositions.front().qty, 5);
+  EXPECT_DOUBLE_EQ(es.openPositions.front().price, 110.0);
+  EXPECT_DOUBLE_EQ(es.avgEntryPrice, 110.0);
+  EXPECT_DOUBLE_EQ(es.entryNotional, -550.0);
+  EXPECT_DOUBLE_EQ(es.exitNotional, 0.0) << "episode notionals reset on close";
+}
+
+// round trip: buy 10 @100 on d1, sell 10 @110 on d2.
+// report() text is the only readout of the private aggregates.
+TEST(AnalyticsTest, ReportRoundTrip) {
+  Analytics an;
+  std::vector<Execution> execs{{"d1", 10, 100.0}, {"d2", -10, 110.0}};
+  std::vector<BarSnapshot> snaps{
+      {"start", 1000.0, 0, 100.0, 100.0},  // sentinel
+      {"d1", 1000.0, 10, 95.0, 105.0},     // in market, flat equity
+      {"d2", 1100.0, 0, 108.0, 112.0},     // closed, +100
+  };
+  an.recordInfo(execs, snaps);
+
+  std::ostringstream os;
+  an.report(os);
+  const std::string r = os.str();
+
+  EXPECT_NE(r.find("2"), std::string::npos); // trading days
+  EXPECT_NE(r.find("$1,000.00"), std::string::npos); // start equity
+  EXPECT_NE(r.find("$1,100.00"), std::string::npos); // end equity
+  EXPECT_NE(r.find("+10.00%"), std::string::npos);   // total return
+  EXPECT_NE(r.find("1 (50.00%)"), std::string::npos); // days in market
+  EXPECT_NE(r.find("1W / 0L / 0BE"), std::string::npos);
+  EXPECT_NE(r.find("$100.00"), std::string::npos);   // net pnl / avg win
+  // sharpe inputs {0, 0.1}: mean 5%, var 0.005 -> sharpe ~11.22
+  EXPECT_NE(r.find("11.22"), std::string::npos);
+}
+
+// equity 1000 -> 1200 -> 900: peak 1200, drawdown (1200-900)/1200 = 25%
+TEST(AnalyticsTest, ReportMaxDrawdown) {
+  Analytics an;
+  std::vector<BarSnapshot> snaps{{"s", 1000.0, 0, 1000.0, 1000.0},
+                                 {"d1", 1200.0, 0, 1200.0, 1200.0},
+                                 {"d2", 900.0, 0, 900.0, 900.0}};
+  an.recordInfo({}, snaps);
+
+  std::ostringstream os;
+  an.report(os);
+  EXPECT_NE(os.str().find("25.00%"), std::string::npos);
+}
+
+// flat equity curve: variance 0 -> sharpe path must report n/a, not inf
+TEST(AnalyticsTest, ReportFlatCurveNoSharpe) {
+  Analytics an;
+  std::vector<BarSnapshot> snaps(4, {"d", 1000.0, 0, 1000.0, 1000.0});
+  an.recordInfo({}, snaps);
+
+  std::ostringstream os;
+  an.report(os);
+  EXPECT_NE(os.str().find("n/a (need >= 2 bars with non-zero variance)"),
+            std::string::npos);
+}
+
+TEST(AnalyticsTest, CaptureStateFreshState) {
+  Analytics an;
+  State st{};
+  EXPECT_TRUE(an.captureState(st));
+}
+
+// median: odd -> middle element, even -> mean of the two middle elements
+TEST(AnalyticsTest, Median) {
+  EXPECT_EQ(median({}), std::nullopt);
+  EXPECT_DOUBLE_EQ(*median({7.0}), 7.0);
+  EXPECT_DOUBLE_EQ(*median({1.0, 2.0, 9.0}), 2.0);
+  EXPECT_DOUBLE_EQ(*median({1.0, 2.0, 3.0, 10.0}), 2.5);
+}
+
+TEST(AnalyticsTest, PercentileGating) {
+  const std::vector<double> v(20);
+  EXPECT_EQ(percentile({}, 0.5), std::nullopt) << "empty";
+  EXPECT_EQ(percentile(v, -0.1), std::nullopt) << "p < 0";
+  EXPECT_EQ(percentile(v, 1.1), std::nullopt) << "p > 1";
+  // minNeeded = ceil(1/(1-p)) * 2: p90 needs 20, p95 needs 40
+  std::vector<double> nineteen(19);
+  std::iota(nineteen.begin(), nineteen.end(), 1.0);
+  EXPECT_EQ(percentile(nineteen, 0.90), std::nullopt) << "19 < 20";
+  std::vector<double> thirtynine(39);
+  std::iota(thirtynine.begin(), thirtynine.end(), 1.0);
+  EXPECT_EQ(percentile(thirtynine, 0.95), std::nullopt) << "39 < 40";
+}
+
+TEST(AnalyticsTest, PercentileValues) {
+  // p >= 1 short-circuits before the minNeeded gate
+  EXPECT_DOUBLE_EQ(*percentile({3.0}, 1.0), 3.0);
+
+  std::vector<double> twenty(20);
+  std::iota(twenty.begin(), twenty.end(), 1.0);
+  EXPECT_DOUBLE_EQ(*percentile(twenty, 0.90), 18.0)
+      << "k = ceil(0.9*20) = 18 -> v[17]";
+  std::vector<double> four{1.0, 2.0, 3.0, 4.0};
+  EXPECT_DOUBLE_EQ(*percentile(four, 0.5), 2.0);
+
+  // k rounds UP: ceil(0.9*25) = 23 -> v[22]
+  std::vector<double> twentyfive(25);
+  std::iota(twentyfive.begin(), twentyfive.end(), 1.0);
+  EXPECT_DOUBLE_EQ(*percentile(twentyfive, 0.90), 23.0);
+
+  std::vector<double> forty(40);
+  std::iota(forty.begin(), forty.end(), 1.0);
+  EXPECT_DOUBLE_EQ(*percentile(forty, 0.95), 38.0)
+      << "k = ceil(0.95*40) = 38 -> v[37]";
+}
+
+// short side of the FIFO matcher: cover part of a short
+TEST(AnalyticsTest, HandleExecutionShortPartialCover) {
+  Analytics an;
+  EpisodeState es{};
+  an.handleExecution({"d1", -10, 100.0}, es);
+  an.handleExecution({"d2", 4, 90.0}, es);
+  ASSERT_EQ(es.openPositions.size(), 1);
+  EXPECT_EQ(es.openPositions.front().direction, -1);
+  EXPECT_EQ(es.openPositions.front().qty, 6);
+  EXPECT_DOUBLE_EQ(es.exitNotional, -360.0);
+  EXPECT_DOUBLE_EQ(es.entryNotional, -1000.0);
+  EXPECT_DOUBLE_EQ(es.avgEntryPrice, 100.0);
+}
+
+// short 10 @100 flipped by buy 15 @110 -> long 5 @110
+TEST(AnalyticsTest, HandleExecutionShortFlipToLong) {
+  Analytics an;
+  EpisodeState es{};
+  an.handleExecution({"d1", -10, 100.0}, es);
+  an.handleExecution({"d2", 15, 110.0}, es);
+  ASSERT_EQ(es.openPositions.size(), 1);
+  EXPECT_EQ(es.openPositions.front().direction, 1);
+  EXPECT_EQ(es.openPositions.front().qty, 5);
+  EXPECT_DOUBLE_EQ(es.avgEntryPrice, 110.0);
+  EXPECT_DOUBLE_EQ(es.entryNotional, 550.0);
+  EXPECT_DOUBLE_EQ(es.exitNotional, 0.0);
+}
+
+// one fill draining two lots: 10@100 + 10@110, then sell 15 @120
+// -> lot 1 fully closed, lot 2 shrunk to 5; episode stays open
+TEST(AnalyticsTest, HandleExecutionMultiLotDrain) {
+  Analytics an;
+  EpisodeState es{};
+  an.handleExecution({"d1", 10, 100.0}, es);
+  an.handleExecution({"d2", 10, 110.0}, es);
+  an.handleExecution({"d3", -15, 120.0}, es);
+  ASSERT_EQ(es.openPositions.size(), 1);
+  EXPECT_EQ(es.openPositions.front().qty, 5);
+  EXPECT_DOUBLE_EQ(es.openPositions.front().price, 110.0);
+  EXPECT_DOUBLE_EQ(es.exitNotional, 1800.0);
+  EXPECT_DOUBLE_EQ(es.entryNotional, 2100.0)
+      << "episode not closed: notionals not reset";
+}
+
+// losing round trip pins the loss side of the trade stats
+TEST(AnalyticsTest, ReportLosingRoundTrip) {
+  Analytics an;
+  std::vector<Execution> execs{{"d1", 10, 100.0}, {"d2", -10, 90.0}};
+  std::vector<BarSnapshot> snaps{{"start", 1000.0, 0, 100.0, 100.0},
+                                 {"d1", 1000.0, 10, 95.0, 105.0},
+                                 {"d2", 900.0, 0, 88.0, 92.0}};
+  an.recordInfo(execs, snaps);
+
+  std::ostringstream os;
+  an.report(os);
+  const std::string r = os.str();
+  EXPECT_NE(r.find("0W / 1L / 0BE"), std::string::npos);
+  EXPECT_NE(r.find("-$100.00"), std::string::npos); // net pnl / avg loss
+  EXPECT_NE(r.find("-10.00%"), std::string::npos);  // total return
+}
+
+// short excursion: favorable move is the LOW side. short 10 @100 with
+// bar range [90, 115]: MFE = -10 * (90 - 100) = 100 -> +10.00% of
+// notional. If the code used maxPrice for shorts, this cell would read
+// -15.00% instead.
+TEST(AnalyticsTest, ReportShortExcursionUsesLow) {
+  Analytics an;
+  std::vector<Execution> execs{{"d1", -10, 100.0}, {"d2", 10, 90.0}};
+  std::vector<BarSnapshot> snaps{{"start", 1000.0, 0, 1000.0, 1000.0},
+                                 {"d1", 1000.0, -10, 90.0, 115.0},
+                                 {"d2", 900.0, 0, 88.0, 92.0}};
+  an.recordInfo(execs, snaps);
+
+  std::ostringstream os;
+  an.report(os);
+  const std::string r = os.str();
+  EXPECT_NE(r.find("+10.00%"), std::string::npos) << "MFE p50 from the low";
+  EXPECT_NE(r.find("-15.00%"), std::string::npos) << "MAE p50 from the high";
 }
 } // namespace AnalyticsTest
