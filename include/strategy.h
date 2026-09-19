@@ -36,6 +36,7 @@ public:
       dq.pop_front();
     }
   }
+  int getMaxSize() {return maxSize;}
   T size() const { return dq.size(); }
   T getSum() const { return sum; }
   T getSumSquared() const { return sumSquared; }
