@@ -52,6 +52,15 @@ Backtest holds `std::vector<Bar> history` which is passed to Strategy, who passe
 `sizerOutput = sizer_.generate(signalOutput, state, history)`
 `finalMove = riskManager_.generate(sizerOutput, state, history)`
 
+## Calling contract
+
+`generate()` is called exactly ONCE per bar, in order, as the backtest walks the data. Components may hold internal state across calls (e.g. VolatilityTargetSizer's rolling return window, BracketRiskManager's TrueRanges) — they consume one new bar per call, they do not re-scan `history`.
+
+Consequences:
+- calling generate() twice on the same bar double-counts that bar in any internal window — so it is NOT idempotent
+- tests that probe multiple scenarios at the same bar must use a fresh component instance per scenario, fed the same bars once each
+- components that don't need history (BuyHoldSignal, RandomSignal, FixedFractionalSizer) are just the degenerate case of the same contract
+
 # Strategies to implement
 
 ## Signal:
