@@ -61,6 +61,12 @@ public:
     return sum / maxSize;
   }
 
+  std::optional<T> getEMA() {
+    double N = dq.size();
+    if (N < maxSize) 
+      return std::nullopt;
+    return EMA;
+  }
 
 
 
