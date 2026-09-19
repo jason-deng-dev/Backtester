@@ -437,10 +437,81 @@ TEST(SignalTest, RollingWindowAverageTest) {
   // x = 2/(3+1) = 1/2
   // EMA = 1/2 * 20 + (1/2)*6 = 13
   EXPECT_DOUBLE_EQ(*win.getEMA(), 13) << "third EMA";
+}
 
+// Event semantics: adopt the first observed side silently at warm-up,
+// then emit only on flips. All averages below hand-computed bar-by-bar.
 
+// warm-up gate is the SLOW window: at bar 2 the fast SMA exists
+// (100+110)/2 = 105 but the slow one doesn't -> 0
+TEST(SignalTest, MovingAverageCrossoverWarmup) {
+  MovingAverageCrossoverSignal mac{
+      2, 3, MovingAverageCrossoverSignal::AvgType::SMA,
+      MovingAverageCrossoverSignal::AvgType::SMA};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  for (double px : {100.0, 110.0}) {
+    hs.push_back({"d", px});
+    EXPECT_EQ(mac.generate(st, hs), 0);
+  }
+}
 
+// prices 100,100,100,110,110,100,90 with fast=2/slow=3 SMAs:
+//   b4 fast 105  slow 103.33  diff+ -> silent adoption (0)
+//   b5 fast 110  slow 106.67  diff+ -> no re-entry while above (0)
+//   b6 fast 105  slow 106.67  diff- -> FLIP while long (-1)
+//   b7 fast  95  slow 100     diff- -> hold, no re-fire (0)
+TEST(SignalTest, MovingAverageCrossoverSMAFlip) {
+  MovingAverageCrossoverSignal mac{
+      2, 3, MovingAverageCrossoverSignal::AvgType::SMA,
+      MovingAverageCrossoverSignal::AvgType::SMA};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  std::vector<double> prices{100, 100, 100, 110, 110, 100, 90};
+  std::vector<int> expected{0, 0, 0, 0, 0, -1, 0};
+  for (std::size_t i = 0; i < prices.size(); i++) {
+    hs.push_back({"d", prices[i]});
+    EXPECT_EQ(mac.generate(st, hs), expected[i]) << "bar " << i + 1;
+  }
+}
 
+// mirror image: bearish adoption first, then flip back long
+//   b4 fast 95  slow 96.67  diff- -> silent adoption (0)
+//   b6 fast 95  slow 93.33  diff+ -> FLIP (+1)
+TEST(SignalTest, MovingAverageCrossoverBearishFirst) {
+  MovingAverageCrossoverSignal mac{
+      2, 3, MovingAverageCrossoverSignal::AvgType::SMA,
+      MovingAverageCrossoverSignal::AvgType::SMA};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  std::vector<double> prices{100, 100, 100, 90, 90, 100, 110};
+  std::vector<int> expected{0, 0, 0, 0, 0, 1, 0};
+  for (std::size_t i = 0; i < prices.size(); i++) {
+    hs.push_back({"d", prices[i]});
+    EXPECT_EQ(mac.generate(st, hs), expected[i]) << "bar " << i + 1;
+  }
+}
+
+// EMA pins: fast=EMA(2) seeds with SMA at window fill (100), then
+// EMA = 2/3*price + 1/3*prev. prices 100,100,100,112,100,112,
+// slow=SMA(4):
+//   b4 EMA 108.00  slow 103 -> adopt silently (0)
+//   b5 EMA 102.67  slow 103 -> flip DOWN (-1)
+//   b6 EMA 108.89  slow 106 -> flip back up (+1)
+// SMA(2)/SMA(4) on the same data would NOT flip at b5 (106 vs 103),
+// so this test fails if EMA is silently swapped for SMA
+TEST(SignalTest, MovingAverageCrossoverEMAReactsFaster) {
+  MovingAverageCrossoverSignal mac{
+      2, 4, MovingAverageCrossoverSignal::AvgType::EMA,
+      MovingAverageCrossoverSignal::AvgType::SMA};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  std::vector<double> prices{100, 100, 100, 112, 100, 112};
+  std::vector<int> expected{0, 0, 0, 0, -1, 1};
+  for (std::size_t i = 0; i < prices.size(); i++) {
+    hs.push_back({"d", prices[i]});
+    EXPECT_EQ(mac.generate(st, hs), expected[i]) << "bar " << i + 1;
+  }
 }
 
 
