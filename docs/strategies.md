@@ -172,8 +172,8 @@ Death Cross (bearish)
 - fastAvg crosses below long-term MA => momentum shifting downwards
 - sell signal
 
-
-
+Adopts the initial trend at warm-up, and only emits signal on flips
+- so that the signal never enters mid-trend when we first fill our fastWindow and slowWindow and are able to get SMA/EMA
 
 ## Bracket Risk Manager
 If doesn't have N periods yet, just pass Sizer output unchanged
