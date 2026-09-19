@@ -433,7 +433,7 @@ TEST(SignalTest, RollingWindowAverageTest) {
   // EMA = 1/2 * 10 + (1/2)*2 = 3
   EXPECT_DOUBLE_EQ(*win.getEMA(), 6) << "second EMA";
   win.addVal(20);
-   EXPECT_DOUBLE_EQ(*win.getSMA(), 11) << "third SMA";
+  EXPECT_DOUBLE_EQ(*win.getSMA(), 11) << "third SMA";
   // x = 2/(3+1) = 1/2
   // EMA = 1/2 * 20 + (1/2)*6 = 13
   EXPECT_DOUBLE_EQ(*win.getEMA(), 13) << "third EMA";
@@ -445,9 +445,9 @@ TEST(SignalTest, RollingWindowAverageTest) {
 // warm-up gate is the SLOW window: at bar 2 the fast SMA exists
 // (100+110)/2 = 105 but the slow one doesn't -> 0
 TEST(SignalTest, MovingAverageCrossoverWarmup) {
-  MovingAverageCrossoverSignal mac{
-      2, 3, MovingAverageCrossoverSignal::AvgType::SMA,
-      MovingAverageCrossoverSignal::AvgType::SMA};
+  MovingAverageCrossoverSignal mac{2, 3,
+                                   MovingAverageCrossoverSignal::AvgType::SMA,
+                                   MovingAverageCrossoverSignal::AvgType::SMA};
   State st{10'000, 0};
   std::vector<Bar> hs{};
   for (double px : {100.0, 110.0}) {
@@ -462,9 +462,9 @@ TEST(SignalTest, MovingAverageCrossoverWarmup) {
 //   b6 fast 105  slow 106.67  diff- -> FLIP while long (-1)
 //   b7 fast  95  slow 100     diff- -> hold, no re-fire (0)
 TEST(SignalTest, MovingAverageCrossoverSMAFlip) {
-  MovingAverageCrossoverSignal mac{
-      2, 3, MovingAverageCrossoverSignal::AvgType::SMA,
-      MovingAverageCrossoverSignal::AvgType::SMA};
+  MovingAverageCrossoverSignal mac{2, 3,
+                                   MovingAverageCrossoverSignal::AvgType::SMA,
+                                   MovingAverageCrossoverSignal::AvgType::SMA};
   State st{10'000, 0};
   std::vector<Bar> hs{};
   std::vector<double> prices{100, 100, 100, 110, 110, 100, 90};
@@ -479,9 +479,9 @@ TEST(SignalTest, MovingAverageCrossoverSMAFlip) {
 //   b4 fast 95  slow 96.67  diff- -> silent adoption (0)
 //   b6 fast 95  slow 93.33  diff+ -> FLIP (+1)
 TEST(SignalTest, MovingAverageCrossoverBearishFirst) {
-  MovingAverageCrossoverSignal mac{
-      2, 3, MovingAverageCrossoverSignal::AvgType::SMA,
-      MovingAverageCrossoverSignal::AvgType::SMA};
+  MovingAverageCrossoverSignal mac{2, 3,
+                                   MovingAverageCrossoverSignal::AvgType::SMA,
+                                   MovingAverageCrossoverSignal::AvgType::SMA};
   State st{10'000, 0};
   std::vector<Bar> hs{};
   std::vector<double> prices{100, 100, 100, 90, 90, 100, 110};
@@ -501,9 +501,9 @@ TEST(SignalTest, MovingAverageCrossoverBearishFirst) {
 // SMA(2)/SMA(4) on the same data would NOT flip at b5 (106 vs 103),
 // so this test fails if EMA is silently swapped for SMA
 TEST(SignalTest, MovingAverageCrossoverEMAReactsFaster) {
-  MovingAverageCrossoverSignal mac{
-      2, 4, MovingAverageCrossoverSignal::AvgType::EMA,
-      MovingAverageCrossoverSignal::AvgType::SMA};
+  MovingAverageCrossoverSignal mac{2, 4,
+                                   MovingAverageCrossoverSignal::AvgType::EMA,
+                                   MovingAverageCrossoverSignal::AvgType::SMA};
   State st{10'000, 0};
   std::vector<Bar> hs{};
   std::vector<double> prices{100, 100, 100, 112, 100, 112};
@@ -514,12 +514,98 @@ TEST(SignalTest, MovingAverageCrossoverEMAReactsFaster) {
   }
 }
 
-
-
-
-
-
 } // namespace SignalTest
+
+namespace BacktestTest {
+
+// records how many bars the strategy was shown; never trades
+class HistorySpySignal : public Signal {
+public:
+  int generate(const State &, const std::vector<Bar> &history) override {
+    seen.push_back(static_cast<int>(history.size()));
+    return 0;
+  }
+  std::vector<int> seen;
+};
+
+// lets the sizer's order through untouched
+class PassthroughRiskManager : public RiskManager {
+public:
+  double generate(double sizerOutput, const State &,
+                  const std::vector<Bar> &) override {
+    return sizerOutput;
+  }
+};
+
+// the strategy at bar i must see exactly the i previous bars — never the
+// current one (look-ahead). Spy returns 0, so getMove short-circuits and
+// the loop's feeding behavior is the only thing under test.
+TEST(BacktestTest, HistoryExcludesCurrentBar) {
+  DataFeed feed;
+  ASSERT_TRUE(feed.load(TEST_FIXTURES_DIR "/three_bars.csv"));
+  HistorySpySignal spy;
+  FixedFractionalSizer sizer{0.0};
+  PassthroughRiskManager risk;
+  Strategy strat{spy, sizer, risk};
+  State st{100'000, 0};
+
+  Backtest bt;
+  bt.run(feed, strat, st);
+
+  EXPECT_EQ(spy.seen, (std::vector<int>{0, 1, 2}));
+  EXPECT_TRUE(st.getExecutions().empty());
+}
+
+// orders that increase the position beyond available cash are silenced:
+// BuyHold wants in at bar 2 (sizer: 2*1000/12 = 166 shares = 3320 > 1000)
+// and out at bar 3 (-90 shares = 2700 > 1000) — neither executes.
+TEST(BacktestTest, RejectsUnaffordableIncrease) {
+  DataFeed feed;
+  ASSERT_TRUE(feed.load(TEST_FIXTURES_DIR "/three_bars.csv"));
+  BuyHoldSignal signal;
+  FixedFractionalSizer sizer{2.0};
+  PassthroughRiskManager risk;
+  Strategy strat{signal, sizer, risk};
+  State st{1'000, 0};
+
+  Backtest bt;
+  bt.run(feed, strat, st);
+
+  EXPECT_TRUE(st.getExecutions().empty());
+  EXPECT_DOUBLE_EQ(st.getCash(), 1'000.0);
+}
+
+// fills happen at the bar's OPEN (20 and 30, not the closes 22/32), and
+// a reducing order passes the affordability gate even with little cash.
+// Hand-computed (qty truncates to int at getMove):
+//   bar2 entry: int(0.5*1000/12) = 41 sh @ 20 -> cash 180
+//   bar3 exit:  equity 180 + 41*22 = 1082; int(-0.5*1082/22) = -24 sh @ 30
+//   -> cash 180 + 720 = 900, netQty 17 (fractional sizer does NOT fully
+//   close the position — that is expected behavior, pinned here)
+TEST(BacktestTest, FillsAtOpenAndAllowsReduction) {
+  DataFeed feed;
+  ASSERT_TRUE(feed.load(TEST_FIXTURES_DIR "/three_bars.csv"));
+  BuyHoldSignal signal;
+  FixedFractionalSizer sizer{0.5};
+  PassthroughRiskManager risk;
+  Strategy strat{signal, sizer, risk};
+  State st{1'000, 0};
+
+  Backtest bt;
+  bt.run(feed, strat, st);
+
+  ASSERT_EQ(st.getExecutions().size(), 2);
+  EXPECT_EQ(st.getExecutions()[0].date, "d2");
+  EXPECT_EQ(st.getExecutions()[0].qty, 41);
+  EXPECT_DOUBLE_EQ(st.getExecutions()[0].price, 20.0);
+  EXPECT_EQ(st.getExecutions()[1].date, "d3");
+  EXPECT_EQ(st.getExecutions()[1].qty, -24);
+  EXPECT_DOUBLE_EQ(st.getExecutions()[1].price, 30.0);
+  EXPECT_DOUBLE_EQ(st.getCash(), 900.0);
+  EXPECT_EQ(st.getNetQty(), 17);
+}
+
+} // namespace BacktestTest
 
 namespace SizerTest {
 TEST(SizerTest, FixedFractional) {
@@ -856,9 +942,11 @@ TEST(RiskManagerTest, BracketRiskManagerNoTouch) {
 
 } // namespace RiskManagerTest
 
+namespace AnalyticsTest {
 // Analytics tests
 TEST(AnalyticsTest, Classify) {
   EXPECT_EQ(classify(0), Outcome::BreakEven);
   EXPECT_EQ(classify(1), Outcome::Win);
   EXPECT_EQ(classify(-1), Outcome::Loss);
 }
+} // namespace AnalyticsTest
