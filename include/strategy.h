@@ -29,14 +29,19 @@ public:
     dq.push_back(val);
     sum += val;
     sumSquared += val * val;
+    if (dq.size() == std::size_t(maxSize)) {
+      EMA = getSMA();
+    }
     if (dq.size() > std::size_t(maxSize)) {
+      double x = 2.0/(maxSize+1);
+      EMA = x * val + (1-x) * EMA;
       T frontVal = dq.front();
       sum -= frontVal;
       sumSquared -= frontVal * frontVal;
       dq.pop_front();
     }
   }
-  int getMaxSize() {return maxSize;}
+  int getMaxSize() { return maxSize; }
   T size() const { return dq.size(); }
   T getSum() const { return sum; }
   T getSumSquared() const { return sumSquared; }
@@ -45,14 +50,25 @@ public:
   std::optional<T> getStdDev() const {
     double N = dq.size();
     if (N < maxSize)
-      return {};
+      return std::nullopt;
     return std::sqrt((sumSquared - sum * sum / N) / (N - 1));
   }
 
+  std::optional<T> getSMA() {
+    double N = dq.size();
+    if (N < maxSize)
+      return std::nullopt;
+    return sum / maxSize;
+  }
+
+
+
+
+
 private:
+  T EMA {};
   std::deque<T> dq{};
   T sum{0};
   T sumSquared{0};
   int maxSize{};
 };
-

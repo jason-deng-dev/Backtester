@@ -159,6 +159,10 @@ Exponential Moving Average (EMA)
 EMA_t = x*P_t + (1-x)EMA_{t-1}
 x = 2/(N+1)
 
+EMA_{N-1} = SMA(P0,...P_{N-1})
+
+
+
 EMA reacts faster to recent prices than SMA, many crossover use EMA for fast line, and SMA or EMA for slow line
 
 if fastAvg > slowAvg : uptrend -> long
