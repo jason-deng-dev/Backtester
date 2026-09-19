@@ -161,15 +161,19 @@ x = 2/(N+1)
 
 EMA_{N-1} = SMA(P0,...P_{N-1})
 
-
-
 EMA reacts faster to recent prices than SMA, many crossover use EMA for fast line, and SMA or EMA for slow line
 
-if fastAvg > slowAvg : uptrend -> long
-if fastAvg < slowAvg : downtrend -> short or flat
 
-enter long when fast cross above slow
-enter short when fast cross below slow
+Golden Cross (bullish)
+- fastAvg crosses over slowAvg => momentum shifting upwards
+- buy signal
+
+Death Cross (bearish)
+- fastAvg crosses below long-term MA => momentum shifting downwards
+- sell signal
+
+
+
 
 ## Bracket Risk Manager
 If doesn't have N periods yet, just pass Sizer output unchanged
