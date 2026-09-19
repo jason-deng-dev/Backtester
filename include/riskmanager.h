@@ -11,14 +11,10 @@
 
 class RiskManager {
 public:
-  RiskManager(int minLookback = 0) : minLookback_(minLookback) {}
+  RiskManager() {}
   virtual ~RiskManager() = default;
   virtual double generate(double sizerOutput, const State &state,
                           const std::vector<Bar> &history) = 0;
-  int getMinLookback() const { return minLookback_; }
-
-private:
-  int minLookback_{}; // called by generate to verify we have enough history
 };
 
 class NotionalCapRiskManager : public RiskManager {
@@ -111,7 +107,7 @@ class BracketRiskManager : public RiskManager {
 public:
   explicit BracketRiskManager(int ATR_range, double stopLossMulti,
                               double takeProfitMulti)
-      : RiskManager(ATR_range), trs(ATR_range), stopMult(stopLossMulti),
+      : trs(ATR_range), stopMult(stopLossMulti),
         takeMult(takeProfitMulti) {}
 
   double generate(double sizerOutput, const State &state,

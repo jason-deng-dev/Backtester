@@ -47,14 +47,16 @@
 - [x] Replace old Strategy implementation with new
 - [x] State should manage and track it's own current position entry price
   - [x] state.getEntryPrice()
-- [ ] Refactor so lookback history is responsbility of Derived classes to handle
-  - [ ] Signal
+- [x] Refactor so lookback history is responsbility of Derived classes to handle
+  - [x] Signal
   - [x] Sizer
-  - [ ] RiskManager
+  - [x] RiskManager
 - [ ] Tests
   - [x] DataFeed
   - [x] State 
   - [ ] Strategy
+    - [ ] SignalTest
+      - [ ] 
     - [x] SizerTest
       - [x] Fixed fractional
       - [x] Vol target
