@@ -1,19 +1,16 @@
 #pragma once
 #include "datafeed.h"
 #include "state.h"
+#include "strategy.h"
 #include <iostream>
 #include <random>
 #include <stdexcept>
 
 class Signal {
 public:
-  Signal(int minLookback = 0) : minLookback_(minLookback) {}
+  Signal()  {}
   virtual ~Signal() = default;
   virtual int generate(const State &state, const std::vector<Bar> &history) = 0;
-  int getMinLookback() const { return minLookback_; }
-
-private:
-  int minLookback_{}; // called by generate to verify we have enough history
 };
 
 class BuyHoldSignal : public Signal {
@@ -74,4 +71,21 @@ private:
   std::bernoulli_distribution enterDist_;
   std::bernoulli_distribution exitDist_;
   std::bernoulli_distribution longDist_;
+};
+
+class MeanReversionSignal : public Signal {
+public:
+  explicit MeanReversionSignal(int lookback, double entryZ, double exitZ)
+      : N_(lookback), priceWindow(lookback), entryZ_(entryZ),
+        exitZ_(exitZ) {}
+  int generate(const State &state, const std::vector<Bar> &history) override {
+
+    return 1;
+  }
+
+private:
+  int N_;
+  RollingWindow<double> priceWindow;
+  double entryZ_;
+  double exitZ_;
 };
