@@ -8,12 +8,13 @@
 
 class Signal {
 public:
-  Signal()  {}
+  Signal() {}
   virtual ~Signal() = default;
   virtual int generate(const State &state, const std::vector<Bar> &history) = 0;
 };
 
 class BuyHoldSignal : public Signal {
+public:
   int generate(const State &state, const std::vector<Bar> &history) override {
     if (history.size() == 1) {
       return 1;
@@ -76,16 +77,54 @@ private:
 class MeanReversionSignal : public Signal {
 public:
   explicit MeanReversionSignal(int lookback, double entryZ, double exitZ)
-      : N_(lookback), priceWindow(lookback), entryZ_(entryZ),
-        exitZ_(exitZ) {}
+      : priceWindow(lookback), entryZ_(entryZ), exitZ_(exitZ) {}
   int generate(const State &state, const std::vector<Bar> &history) override {
+    if (history.empty())
+      return 0;
+    auto price = history.back().close;
+    priceWindow.addVal(price);
+    auto stdDev = priceWindow.getStdDev();
 
-    return 1;
+    // not enough price history
+    if (!stdDev)
+      return 0;
+
+    double z =
+        (price - priceWindow.getSum() / priceWindow.getMaxSize()) / *stdDev;
+
+    std::cout << "Z is :" << z << '\n';
+
+    if (state.getNetQty() == 0) {
+      if (z <= -entryZ_)
+        return 1;
+      if (z >= entryZ_)
+        return -1;
+    } else if (state.getNetQty() > 0 && z >= exitZ_) {
+      return -1;
+    } else if (state.getNetQty() < 0 && z <= -exitZ_) {
+      return 1;
+    }
+    return 0;
   }
 
 private:
-  int N_;
   RollingWindow<double> priceWindow;
   double entryZ_;
   double exitZ_;
+};
+
+class MovingAverageCrossoverSignal : public Signal {
+public:
+  enum AvgType {SMA, EMA};
+
+
+
+
+  explicit MovingAverageCrossoverSignal(int fastN, int slowN, AvgType fastAvgType, AvgType slowAvgType)
+      : fastWindow(fastN), slowWindow(slowN) {}
+
+private:
+  
+  RollingWindow<double> fastWindow;
+  RollingWindow<double> slowWindow;
 };

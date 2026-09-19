@@ -145,6 +145,7 @@ trend following signal
 parameters:
 fastN: short lookback (ex: 20)
 slowN: long lookback  (ex: 50)
+fastAvgType/slowAvgType : SMA or EMA
 
 fastAvg = moving avg(past fastN history)
 slowAvg = moving avg(past slowN history)

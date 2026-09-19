@@ -167,6 +167,20 @@ TEST(StateTest, AvgEntryPriceFlatResetShort) {
 } // namespace StateTest
 
 namespace SignalTest {
+TEST(SignalTest, BuyHoldSignal) {
+  BuyHoldSignal bhs{};
+  std::vector<Bar> hs{};
+  State st{100, 0};
+  st.setTotalBars(4);
+  EXPECT_EQ(bhs.generate(st, hs), 0) << "empty history";
+  hs.push_back({"d", 10});
+  EXPECT_EQ(bhs.generate(st, hs), 1) << "first history";
+  hs.push_back({"d", 10});
+  EXPECT_EQ(bhs.generate(st, hs), 0) << "middle history";
+  hs.push_back({"d", 10});
+  EXPECT_EQ(bhs.generate(st, hs), -1) << "last history";
+}
+
 TEST(SignalTest, RandomSignal) {
   std::mt19937 gen{42};
   EXPECT_THROW(RandomSignal(2, 1, 1, gen), std::invalid_argument);
@@ -239,18 +253,168 @@ TEST(SignalTest, RandomSignalHoldPosition) {
         << "in position: no exits, and no mid-position entries";
 }
 
-TEST(SignalTest, BuyHoldSignal) {
-  BuyHoldSignal bhs{};
+// z = (price - mean)/sigma over the last N closes; window must be full.
+// Same once-per-bar contract as the sizer: fresh instance per scenario.
+// Hand-computed shapes (z is scale/location invariant — only the shape
+// of the window matters; z uses the CURRENT bar, which must be the
+// outlier for an entry signal):
+//   {100,100,100,100} -> z =  0
+//   {100,100,100, 90} -> z = -1.5 exactly (devs 2.5,2.5,2.5,-7.5;
+//                        sumSq 75, var 75/3 = 25, std 5)
+//   {100,100,100,110} -> z = +1.5 exactly (mirror of the above)
+//   {100,100,100, 99} -> z = -1.5 (devs .25,.25,.25,-.75, std .5)
+//   { 99,100,100,100} -> z = +0.5
+
+TEST(SignalTest, MeanReversionWarmup) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, 0};
   std::vector<Bar> hs{};
-  State st{100, 0};
-  st.setTotalBars(4);
-  EXPECT_EQ(bhs.generate(st, hs), 0) << "empty history";
-  hs.push_back({"d", 10});
-  EXPECT_EQ(bhs.generate(st, hs), 1) << "first history";
-  hs.push_back({"d", 10});
-  EXPECT_EQ(bhs.generate(st, hs), 0) << "middle history";
-  hs.push_back({"d", 10});
-  EXPECT_EQ(bhs.generate(st, hs), -1) << "last history";
+  EXPECT_EQ(mr.generate(st, hs), 0) << "empty history";
+  for (double px : {100.0, 100.0, 100.0}) {
+    hs.push_back({"d", px});
+    EXPECT_EQ(mr.generate(st, hs), 0) << "window not full yet";
+  }
+}
+
+TEST(SignalTest, MeanReversionFlatNoSignal) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {99.0, 100.0, 100.0, 100.0}) { // z = +0.5
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, 0) << "|z| below entryZ: no entry";
+}
+
+TEST(SignalTest, MeanReversionFlatEntryLong) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {100.0, 100.0, 100.0, 90.0}) { // z = -1.5 <= -entryZ
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, 1);
+}
+
+TEST(SignalTest, MeanReversionFlatEntryShort) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  int last = 0;
+  // current bar is the outlier: mean 102.5, devs -2.5x3/+7.5, sumSq 75,
+  // var 75/3 = 25, std 5, z = (110-102.5)/5 = +1.5 >= entryZ
+  for (double px : {100.0, 100.0, 100.0, 110.0}) {
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, -1);
+}
+
+// boundary: z exactly at -entryZ fires (comparison is <=). Uses the
+// exact shape {100,100,100,90}: devs 2.5,2.5,2.5,-7.5, sumSq 75,
+// var = 75/3 = 25, std = 5, z = -7.5/5 = -1.5 exactly under /N-1
+TEST(SignalTest, MeanReversionEntryBoundary) {
+  MeanReversionSignal mr{4, 1.5, 0.5};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {100.0, 100.0, 100.0, 90.0}) { // z = -1.5 == -entryZ
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, 1) << "z == -entryZ must fire";
+}
+
+TEST(SignalTest, MeanReversionLongExit) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, 10}; // long
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {99.0, 100.0, 100.0, 100.0}) { // z = +0.5 >= exitZ
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, -1) << "reverted to mean: sell the long";
+}
+
+TEST(SignalTest, MeanReversionLongNoExitAtMean) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, 10};
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {100.0, 100.0, 100.0, 100.0}) { // z = 0
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, 0) << "z below exitZ: hold";
+}
+
+TEST(SignalTest, MeanReversionShortCover) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, -10}; // short
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {100.0, 100.0, 100.0, 99.0}) { // z = -1.5 <= -exitZ
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, 1) << "covered: buy to close the short";
+}
+
+// no pyramiding: a short only closes via -exitZ; a further stretch
+// while already short produces nothing
+TEST(SignalTest, MeanReversionShortNoAdd) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, -10};
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {90.0, 100.0, 100.0, 100.0}) { // z = +1.5 >= entryZ
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, 0) << "already short: no adding, exits use -exitZ only";
+}
+
+// the point of the three-branch definition: a FLAT account must not
+// open a position at the exit threshold. z=+0.5 with exitZ=0.3 used to
+// return -1; flat enters only at +/-entryZ. RED until the signal is
+// fixed to the new definition.
+TEST(SignalTest, MeanReversionFlatNoExitThresholdEntry) {
+  MeanReversionSignal mr{4, 1.2, 0.3};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {99.0, 100.0, 100.0, 100.0}) { // z = +0.5
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, 0) << "flat: exitZ must not open a short";
+}
+
+// the window must roll: after a spike short, a return to 100 must not
+// still see the old 100s. N=3: {100,100,150} -> z=+1.15, then
+// {100,150,100} -> z=-0.577 (oldest price evicted)
+TEST(SignalTest, MeanReversionWindowEvicts) {
+  MeanReversionSignal mr{3, 1.0, 0.3};
+  State st{10'000, 0};
+  std::vector<Bar> hs{};
+  int last = 0;
+  for (double px : {100.0, 100.0, 100.0}) {
+    hs.push_back({"d", px});
+    last = mr.generate(st, hs);
+  }
+  EXPECT_EQ(last, 0) << "flat: z = 0";
+
+  hs.push_back({"d", 150});
+  EXPECT_EQ(mr.generate(st, hs), -1) << "spike: z = +1.15 >= entryZ";
+
+  hs.push_back({"d", 100});
+  EXPECT_EQ(mr.generate(st, hs), 0)
+      << "oldest close evicted: z = -0.577, inside the band";
 }
 
 } // namespace SignalTest
