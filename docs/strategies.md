@@ -192,10 +192,6 @@ Behavior:
 
 
 # Handling insufficient history data
-if we don't have enough bar data stored inside `std::vector<Bar>` history passed to Signal/Sizer/RiskManager, to satisify minLookback (set at construction of Signal/Sizer/RiskManager)
+The responsibility is up to the Derived classes of Signal/Sizer/RiskManager to deal with the case that they don't have enough history to produce an output
 
 Signals, Sizer and RiskManager will return 0, meaning the decision of the strategy on that bar is to do nothing
-
-precondition is that in components that require lookback to perform there generate() function we need to have a check that
-`history.size() >= minLookback` if not, return 0
-
