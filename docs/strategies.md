@@ -120,12 +120,14 @@ high z -> overbought -> expect price to fall -> short
 low z -> oversold -> expect price to sell -> long
 near z = 0 -> no edge -> flat or exit
 
-Long:
-entry: z <= -entryZ
+No position:
+entry : z <= - entryZ
+exit: z >= entryZ
+
+Long position:
 exit:  z >= exitZ
 
-Short:
-entry: z >= entryZ
+Short position:
 exit:  z <= -exitZ 
 
 
