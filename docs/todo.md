@@ -49,7 +49,7 @@
   - [x] state.getEntryPrice()
 - [ ] Refactor so lookback history is responsbility of Derived classes to handle
   - [ ] Signal
-  - [ ] Sizer
+  - [x] Sizer
   - [ ] RiskManager
 - [ ] Tests
   - [x] DataFeed
