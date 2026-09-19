@@ -30,7 +30,7 @@ public:
     sum += val;
     sumSquared += val * val;
     if (dq.size() == std::size_t(maxSize)) {
-      EMA = getSMA();
+      EMA = *getSMA();
     }
     if (dq.size() > std::size_t(maxSize)) {
       double x = 2.0/(maxSize+1);
