@@ -1,4 +1,8 @@
-- [ ] Backtester
+- [ ] Monte Carlo
+
+
+
+- [x] Backtester
   - [x] MVP
     - [x] Data feed 
     - [x] State 
@@ -72,5 +76,3 @@
 
 
 
-
-- [ ] Monte Carlo 
