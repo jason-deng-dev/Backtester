@@ -277,7 +277,7 @@ std::optional<double> median(const std::vector<double> &v) {
 std::optional<double> percentile(const std::vector<double> &v, double p) {
   if (v.empty() || p < 0 || p > 1)
     return std::nullopt;
-  if (p == 1.0)
+  if (p >= 1.0)
     return v.back();
 
   const std::size_t minNeeded = std::ceil(1.0 / (1.0 - p)) * 2;
