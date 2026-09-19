@@ -266,9 +266,122 @@ namespace SizerTest{
     EXPECT_DOUBLE_EQ(ffs05.generate(0, st, hs), 0) << "no order f = 0.5"; 
   }
 
+  // warm-up: fewer than N returns means no order, regardless of signal
+  TEST(SizerTest, VolatilityTargetWarmup) {
+    VolatilityTargetSizer vts{3, 0.03};
+    State st{10'000, 0};
+    std::vector<Bar> hs{};
+
+    EXPECT_DOUBLE_EQ(vts.generate(1, st, hs), 0) << "empty history";
+
+    hs.push_back({"d1", 100});
+    EXPECT_DOUBLE_EQ(vts.generate(1, st, hs), 0) << "1 bar, no return yet";
+
+    hs.push_back({"d2", 99});
+    EXPECT_DOUBLE_EQ(vts.generate(1, st, hs), 0) << "1 return < N";
+
+    hs.push_back({"d3", 99});
+    EXPECT_DOUBLE_EQ(vts.generate(-1, st, hs), 0) << "2 returns < N";
+  }
+
+  // Contract under test: generate() is called exactly ONCE per bar, in
+  // order. Probing a second scenario (short / zero) at the same bar needs
+  // a fresh instance fed the same bars — a repeat call would re-append
+  // the same return and corrupt the window.
+
+  // returns -0.01, 0, +0.01 -> sum 0, sumSq 2e-4, var = 2e-4/2 = 1e-4,
+  // std = 0.01; equity 10000 flat -> (0.03/0.01) * 10000/99.99
+  TEST(SizerTest, VolatilityTargetFiresAfterWarmup) {
+    std::vector<Bar> bars{{"d1", 100}, {"d2", 99}, {"d3", 99}, {"d4", 99.99}};
+    double expected = (0.03 / 0.01) * 10'000.0 / 99.99;
+
+    auto run = [&](int signal) {
+      VolatilityTargetSizer vts{3, 0.03};
+      State st{10'000, 0};
+      std::vector<Bar> hs{};
+      double last = 0;
+      for (const Bar &b : bars) {
+        hs.push_back(b);
+        last = vts.generate(signal, st, hs);
+      }
+      return last;
+    };
+
+    EXPECT_NEAR(run(1), expected, 1e-9) << "long";
+    EXPECT_NEAR(run(-1), -expected, 1e-9) << "short";
+    EXPECT_DOUBLE_EQ(run(0), 0) << "no signal, no order";
+  }
+
+  // position marks equity: cash 0, long 10 @ ~99.99 -> equity = 10 * 99.99
+  TEST(SizerTest, VolatilityTargetUsesMarkedEquity) {
+    VolatilityTargetSizer vts{3, 0.03};
+    State st{0, 10};
+    std::vector<Bar> hs{};
+    double last = 0;
+    for (double px : {100.0, 99.0, 99.0, 99.99}) {
+      hs.push_back({"d", px});
+      last = vts.generate(1, st, hs);
+    }
+
+    // (0.03/0.01) * 999.9/99.99 = 3 * 10 = 30
+    EXPECT_NEAR(last, 30.0, 1e-9);
+  }
+
+  // the window must forget old returns: after the 4th bar the oldest
+  // return (0.1) is evicted, so sizing uses {-0.1, 0.0}, not {0.1, -0.1}
+  TEST(SizerTest, VolatilityTargetWindowEvicts) {
+    VolatilityTargetSizer vts{2, 0.02};
+    State st{10'000, 0};
+    std::vector<Bar> hs{};
+    double last = 0;
+
+    hs.push_back({"d1", 100});
+    last = vts.generate(1, st, hs); // 1 bar: no return yet
+    hs.push_back({"d2", 110});
+    last = vts.generate(1, st, hs); // window {+0.1}
+    hs.push_back({"d3", 99});
+    last = vts.generate(1, st, hs); // returns {+0.1, -0.1}: var = 0.02/1
+
+    double before = (0.02 / std::sqrt(0.02)) * 10'000.0 / 99.0;
+    EXPECT_NEAR(last, before, 1e-9);
+
+    hs.push_back({"d4", 99});
+    last = vts.generate(1, st, hs); // return 0.0; window now {-0.1, 0.0}
+    // mean -0.05, var = (0.01 - 2*0.0025)/1 = 0.005
+    double after = (0.02 / std::sqrt(0.005)) * 10'000.0 / 99.0;
+    EXPECT_NEAR(last, after, 1e-9)
+        << "oldest return must drop out of the window";
+  }
+
+  // zero-vol input: stdDev = 0 -> targetVol/0 = inf (documents the
+  // missing guard; a calm market currently asks for an infinite position)
+  TEST(SizerTest, VolatilityTargetZeroVol) {
+    std::vector<Bar> bars{{"d1", 100}, {"d2", 100}, {"d3", 100}, {"d4", 100}};
+
+    auto run = [&](int signal) {
+      VolatilityTargetSizer vts{3, 0.03};
+      State st{10'000, 0};
+      std::vector<Bar> hs{};
+      double last = 0;
+      for (const Bar &b : bars) {
+        hs.push_back(b);
+        last = vts.generate(signal, st, hs);
+      }
+      return last;
+    };
+
+    EXPECT_TRUE(std::isinf(run(1)))
+        << "flat prices: division by zero, no guard";
+    EXPECT_TRUE(std::isnan(run(0)))
+        << "0 * inf is nan: even the no-signal path is poisoned";
+  }
+
 
 
 } // namespace SizerTest
+
+
+
 namespace RiskManagerTest {
 
 TEST(RiskManagerTest, LongNotionalCapRiskManager) {

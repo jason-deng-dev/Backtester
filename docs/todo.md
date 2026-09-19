@@ -55,9 +55,9 @@
   - [x] DataFeed
   - [x] State 
   - [ ] Strategy
-    - [ ] SizerTest
+    - [x] SizerTest
       - [x] Fixed fractional
-      - [ ] Vol target
+      - [x] Vol target
     - [x] RiskManagerTest
       - [x] NotionalCap
       - [x] Bracket
