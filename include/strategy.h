@@ -26,12 +26,19 @@ template <typename T> class RollingWindow {
 public:
   explicit RollingWindow(int maxS) : maxSize(maxS) {}
   virtual void addVal(T val) {
+    
+
+    auto sizeBefore = dq.size();
+    
     dq.push_back(val);
     sum += val;
     sumSquared += val * val;
-    if (dq.size() == std::size_t(maxSize)) {
+
+    // on the first time we hit maxSize, set EMA to getSMA()
+    if (sizeBefore == std::size_t(maxSize)-1) {
       EMA = *getSMA();
     }
+    
     if (dq.size() > std::size_t(maxSize)) {
       double x = 2.0/(maxSize+1);
       EMA = x * val + (1-x) * EMA;
