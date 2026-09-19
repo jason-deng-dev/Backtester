@@ -51,6 +51,12 @@
   - [x] DataFeed
   - [x] State 
   - [ ] Strategy
+    - [ ] SizerTest
+      - [x] Fixed fractional
+      - [ ] Vol target
+    - [x] RiskManagerTest
+      - [x] NotionalCap
+      - [x] Bracket
   - [ ] Backtest
   - [ ] Analytics
 - [ ] Monte Carlo 

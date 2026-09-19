@@ -166,8 +166,6 @@ TEST(StateTest, AvgEntryPriceFlatResetShort) {
 
 } // namespace StateTest
 
-namespace StrategyTest {
-
 namespace SignalTest {
 TEST(SignalTest, RandomSignal) {
   std::mt19937 gen{42};
@@ -243,6 +241,34 @@ TEST(SignalTest, RandomSignalHoldPosition) {
 
 } // namespace SignalTest
 
+namespace SizerTest{
+  TEST(SizerTest, FixedFractional) {
+    FixedFractionalSizer ffs00 (0);
+    FixedFractionalSizer ffs10 (1);
+    FixedFractionalSizer ffs05(0.5);
+
+    State st (1000, 0);
+    std::vector<Bar> hs;
+
+    EXPECT_EQ(ffs00.generate(1, st, hs), 0) << "empty history" ;
+    hs.push_back({"d1", 100});
+    // ffs00 = 0
+    EXPECT_DOUBLE_EQ(ffs00.generate(1, st, hs), 0) << "long f = 0"; 
+    EXPECT_DOUBLE_EQ(ffs00.generate(-1, st, hs), 0) << "short f = 0"; 
+    EXPECT_DOUBLE_EQ(ffs00.generate(0, st, hs), 0) << "no order f = 0"; 
+    // ffs10 = (1*1000)/100 = 10
+    EXPECT_DOUBLE_EQ(ffs10.generate(1, st, hs), 10) << "long f = 1"; 
+    EXPECT_DOUBLE_EQ(ffs10.generate(-1, st, hs), -10) << "short f = 1"; 
+    EXPECT_DOUBLE_EQ(ffs10.generate(0, st, hs), 0) << "no order f = 1"; 
+    // ffs05 = (0.5*1000)/100 = 5
+    EXPECT_DOUBLE_EQ(ffs05.generate(1, st, hs), 5) << "long f = 0.5"; 
+    EXPECT_DOUBLE_EQ(ffs05.generate(-1, st, hs), -5) << "short f = 0.5"; 
+    EXPECT_DOUBLE_EQ(ffs05.generate(0, st, hs), 0) << "no order f = 0.5"; 
+  }
+
+
+
+} // namespace SizerTest
 namespace RiskManagerTest {
 
 TEST(RiskManagerTest, LongNotionalCapRiskManager) {
@@ -442,8 +468,6 @@ TEST(RiskManagerTest, BracketRiskManagerNoTouch) {
 }
 
 } // namespace RiskManagerTest
-
-} // namespace StrategyTest
 
 // Analytics tests
 TEST(AnalyticsTest, Classify) {
