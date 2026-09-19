@@ -417,6 +417,37 @@ TEST(SignalTest, MeanReversionWindowEvicts) {
       << "oldest close evicted: z = -0.577, inside the band";
 }
 
+TEST(SignalTest, RollingWindowAverageTest) {
+  RollingWindow<double> win{3};
+  EXPECT_TRUE(!win.getSMA() || !win.getEMA()) << "0 => less than N";
+  win.addVal(1);
+  EXPECT_TRUE(!win.getSMA() || !win.getEMA()) << "1 => less than N";
+  win.addVal(2);
+  EXPECT_TRUE(!win.getSMA() || !win.getEMA()) << "2 => less than N";
+  win.addVal(3);
+  EXPECT_DOUBLE_EQ(*win.getSMA(), 2) << "first SMA";
+  EXPECT_DOUBLE_EQ(*win.getEMA(), 2) << "first EMA";
+  win.addVal(10);
+  EXPECT_DOUBLE_EQ(*win.getSMA(), 5) << "second SMA";
+  // x = 2/(3+1) = 1/2
+  // EMA = 1/2 * 10 + (1/2)*2 = 3
+  EXPECT_DOUBLE_EQ(*win.getEMA(), 6) << "second EMA";
+  win.addVal(20);
+   EXPECT_DOUBLE_EQ(*win.getSMA(), 11) << "third SMA";
+  // x = 2/(3+1) = 1/2
+  // EMA = 1/2 * 20 + (1/2)*6 = 13
+  EXPECT_DOUBLE_EQ(*win.getEMA(), 13) << "third EMA";
+
+
+
+
+}
+
+
+
+
+
+
 } // namespace SignalTest
 
 namespace SizerTest {

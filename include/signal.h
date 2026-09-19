@@ -115,16 +115,14 @@ private:
 
 class MovingAverageCrossoverSignal : public Signal {
 public:
-  enum AvgType {SMA, EMA};
+  enum AvgType { SMA, EMA };
 
-
-
-
-  explicit MovingAverageCrossoverSignal(int fastN, int slowN, AvgType fastAvgType, AvgType slowAvgType)
+  explicit MovingAverageCrossoverSignal(int fastN, int slowN,
+                                        AvgType fastAvgType,
+                                        AvgType slowAvgType)
       : fastWindow(fastN), slowWindow(slowN) {}
 
 private:
-  
   RollingWindow<double> fastWindow;
   RollingWindow<double> slowWindow;
 };
