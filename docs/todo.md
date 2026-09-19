@@ -56,7 +56,10 @@
   - [x] State 
   - [ ] Strategy
     - [ ] SignalTest
-      - [ ] 
+      - [x] RandomSignal
+      - [x] BuyAndHold
+      - [ ] Z-score reversion
+      - [ ] MA crossover
     - [x] SizerTest
       - [x] Fixed fractional
       - [x] Vol target
