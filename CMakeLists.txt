@@ -19,8 +19,8 @@ add_library(backtester_core
   src/analytics.cpp
   src/backtest.cpp
   src/datafeed.cpp
-  src/state.cpp
   src/strategy.cpp
+  src/montecarlo.cpp
 )
 
 
