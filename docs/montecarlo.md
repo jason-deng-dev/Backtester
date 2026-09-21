@@ -43,4 +43,32 @@ look at the 2 different distributions of trades
 
 Now we have a regime aware resampled equity path
 
-# 
+# Sampling from per position (round-trip) for Monte Carlo
+- position is analytically meaningful, as an independent unit of risk it's one expression of one trading idea ("long AAPL here, and exit here")
+- Its PnL is one draw from  whatever stochastic process geenrates my returns
+
+exit is just bookkeeping slice of that bet
+
+# Implementation Design
+
+## class MonteCarlo
+- can pass std::mt19937 to it to set seed for testing
+- passed std::vector<PositionRecord> positionRecords from Analytics
+
+## regime switching 
+regime data is best calculated in Analytics which we can use in Regime Switching Monte Carlo
+- to classify each bar what regime it is in
+- and also to calculte each position/trade what regime it takes place in
+
+for regime switching we need to classify every position what regime it is in
+- but what if a position occupies multiple regime 
+
+options:
+soft label:
+-instead of one label per trade {calm:0.7, vol:0.3} (time-weighted over position's life)
+-can compute from PositionRecord's openTime/closeTime + barData (after we classify regime for bars)
+
+dominate regime with threshhold
+-if regime occupies >60% of position's life, tag it as the regime
+
+
