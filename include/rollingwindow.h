@@ -33,14 +33,19 @@ public:
       dq.pop_front();
     }
   }
+
   int getMaxSize() { return maxSize; }
   T size() const { return dq.size(); }
   T getSum() const { return sum; }
   T getSumSquared() const { return sumSquared; }
-  T getPercentile(double p) const {
-    std::vector<T> temp (dq.begin(), dq.end());
-    std::sort(temp.begin(),temp.end());
-    return percentile(temp,p);
+
+  std::optional<T> getPercentile(double p) const {
+    if (dq.size() < maxSize)
+      return std::nullopt;
+
+    std::vector<T> temp(dq.begin(), dq.end());
+    std::sort(temp.begin(), temp.end());
+    return percentile(temp, p);
   }
 
   // precondition is that caller ensured there are enough data points before
@@ -52,15 +57,13 @@ public:
   }
 
   std::optional<T> getSMA() {
-    double N = dq.size();
-    if (N < maxSize)
+    if (dq.size() < maxSize)
       return std::nullopt;
     return sum / maxSize;
   }
 
   std::optional<T> getEMA() {
-    double N = dq.size();
-    if (N < maxSize)
+    if (dq.size() < maxSize)
       return std::nullopt;
     return EMA;
   }
