@@ -98,5 +98,41 @@ Volatility thresholding
 - label by quantiles of the trailing distribution, splitting into volatile and calm periods
 
 - allow custom parameter based classificaiton 
+
 volatile = trailing vol above 70th percentile
 calm = trailing vol below 30th percentile
+
+
+## workflow
+
+Analytics::classifyRegime(State& , double volThreshold, double calmThreshold, int rollingWindow)
+
+Output: vector<Regime> aligned with barSnapshots
+
+1. calculate rolling volatity
+- compute per-bar returns
+- realized vol at bar i = std dev of the last W returns (eg. W = 20 trading days)
+
+2. Causal threshold
+at each bar i, look at window of the last T vol values (T = 252, one trading year), and compute
+- high_i = 75th percentile of {vol_{i-T+1}...vol_i}
+- low_i = 60th percentile of the same window
+
+threshold drift over time: "volatile in 2020 means something different than in 2017
+
+3. hysteresis state machine
+
+walk forward through bars, carrying one piece of state: the current regime
+```c
+if vol_i or thresholds_i don't exist yet:      label[i] = WARMUP
+else if state == CALM  and vol_i > high_i:     state = VOLATILE
+else if state == VOLATILE and vol_i < low_i:   state = CALM
+label[i] = state      (if past warmup)
+```
+- intial state = CALM after warmup
+
+4. Tagging positions
+- Take position's entry time (openTime), find index of that bar (date -> index map)
+- position.regime = label[entry_index]
+
+
