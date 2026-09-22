@@ -1,14 +1,17 @@
 #pragma once
 
+#include "analytics.h"
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <deque>
 #include <optional>
+#include <vector>
 
 template <typename T> class RollingWindow {
 public:
   explicit RollingWindow(int maxS) : maxSize(maxS) {}
-  virtual void addVal(T val) {
+  void addVal(T val) {
 
     auto sizeBefore = dq.size();
 
@@ -34,6 +37,11 @@ public:
   T size() const { return dq.size(); }
   T getSum() const { return sum; }
   T getSumSquared() const { return sumSquared; }
+  T getPercentile(double p) const {
+    std::vector<T> temp (dq.begin(), dq.end());
+    std::sort(temp.begin(),temp.end());
+    return percentile(temp,p);
+  }
 
   // precondition is that caller ensured there are enough data points before
   std::optional<T> getStdDev() const {
