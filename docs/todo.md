@@ -1,6 +1,4 @@
-- [ ] Monte Carlo
-- [ ] decouple maxDrawdown calculation from analytics, so it can be used to on Monte Carlo generated equity path
-- [ ] add regime logic to Analytics
+- [x] add regime logic 
 - [ ] Reshuffling of trade outcomes
   - [ ] sample with replacement, until create one full equity path
   - [ ] perform many times

@@ -105,15 +105,15 @@ calm = trailing vol below 30th percentile
 
 ## workflow
 
-Analytics::classifyRegime(State& , double volThreshold, double calmThreshold, int rollingWindow)
+classifyRegime(State& , double volThreshold, double calmThreshold, int rollingWindow)
 
-Output: vector<Regime> aligned with barSnapshots
+Output: `vector<Regime>` aligned with barSnapshots
 
 1. calculate rolling volatity
 - compute per-bar returns
 - realized vol at bar i = std dev of the last W returns (eg. W = 20 trading days)
 
-2. Causal threshold
+1. Causal threshold
 at each bar i, look at window of the last T vol values (T = 252, one trading year), and compute
 - high_i = 75th percentile of {vol_{i-T+1}...vol_i}
 - low_i = 60th percentile of the same window

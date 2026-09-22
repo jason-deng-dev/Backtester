@@ -148,7 +148,8 @@ public:
   void computePositionRecords();
 
   void computeExitRecords();
-
+  
+  
   // runs every compute step, then prints the full metric rundown
   void report(std::ostream &os = std::cout);
 
@@ -169,6 +170,8 @@ public:
                 << " Exit price:" << e.exitPrice << " pnl:" << e.pnl << '\n';
     }
   }
+
+
 
 private:
   void reportCurve(std::ostream &os, bool sharpeOk);
