@@ -1,11 +1,9 @@
 #pragma once
 
-#include "datafeed.h"
 #include "state.h"
-#include "strategy.h"
+#include "types.h"
 #include <algorithm>
-#include <cstdlib>
-#include <deque>
+#include <cmath>
 #include <optional>
 #include <vector>
 

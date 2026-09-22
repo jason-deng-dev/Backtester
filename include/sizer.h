@@ -1,7 +1,9 @@
 #pragma once
-#include "datafeed.h"
+#include "rollingwindow.h"
 #include "state.h"
-#include "strategy.h"
+#include "types.h"
+#include <optional>
+#include <vector>
 
 class Sizer {
 public:

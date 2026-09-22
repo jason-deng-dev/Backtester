@@ -1,6 +1,8 @@
 #include "analytics.h"
+#include "backtest.h"
 #include "datafeed.h"
 #include "riskmanager.h"
+#include "rollingwindow.h"
 #include "signal.h"
 #include "sizer.h"
 #include "state.h"

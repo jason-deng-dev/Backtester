@@ -1,10 +1,12 @@
 #pragma once
-#include "datafeed.h"
+#include "rollingwindow.h"
 #include "state.h"
-#include "strategy.h"
+#include "types.h"
+#include <cmath>
 #include <iostream>
 #include <random>
 #include <stdexcept>
+#include <vector>
 
 class Signal {
 public:

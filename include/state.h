@@ -1,22 +1,9 @@
 #pragma once
 
+#include "types.h"
 #include <cstddef>
 #include <string>
 #include <vector>
-
-struct BarSnapshot {
-  std::string date{};
-  double equity{};
-  int netQty{};
-  double minPrice{};
-  double maxPrice{};
-};
-
-struct Execution {
-  std::string date{};
-  int qty{};
-  double price{};
-};
 
 class State {
 public:
