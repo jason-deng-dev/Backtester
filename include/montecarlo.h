@@ -8,6 +8,7 @@
 #include <iterator>
 #include <random>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -21,22 +22,16 @@ struct SampledTrade {
 
 class MonteCarlo {
 public:
-
-  void sampleNTrades(int n, int seed) {
-    for ()
-
-  }
-
-  void sampleTrade(int seed, const Analytics &analytics) {
+  void sampleTrade(int seed, int i, const Analytics &analytics) {
     // keep sampling until fill until reach
     std::vector<SampledTrade> tradePath;
-    
+
     const auto &positionRecords = analytics.getPositionRecords();
     auto recordSize = positionRecords.size();
 
     tradePath.reserve(recordSize);
 
-    std::mt19937 gen(seed);
+    std::mt19937 gen(seed + i);
     std::uniform_int_distribution<std::size_t> dist(0,
                                                     positionRecords.size() - 1);
     while (tradePath.size() < recordSize) {
@@ -45,8 +40,35 @@ public:
     }
 
     // move to avoid unneeded copy
-    sampledTrades.push_back(std::move(tradePath));
+    sampledTrades[i] = std::move(tradePath);
   }
+
+
+  // ground-truth reference
+  void sampleTradesSerial(int n, int seed, const Analytics& analytics) {
+    sampledTrades.resize(n);
+    for (int i = 0; i < n; ++i) {
+      sampleTrade(seed, i, analytics);
+    }
+  }
+
+  // CPU multithreaded
+  void sampleTradesParallel(int n, int seed, const Analytics &analytics) {
+    sampledTrades.resize(n);
+    auto C = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads;
+    for (unsigned t = 0; t < C; ++t) {
+      threads.emplace_back([&, t] {
+        for (size_t i = t; i < n; i += C) {
+          sampleTrade(seed, i, analytics);
+        }
+      });
+    }
+    for (auto &th : threads)
+      th.join();
+  }
+
+  void sampleTradesCuda(int n, int seed, const Analytics &analytics);
 
   void classifyRegime(const State &state, double volPercentile = 0.75,
                       double calmPercentile = 0.6, int returnLookback = 20,

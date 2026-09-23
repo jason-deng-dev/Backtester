@@ -149,3 +149,9 @@ Each run gets a seeded generator
 analytics on the equity paths can be performed after parllel sampling of trades are done and we have full run results
 
 can then compute statistics from them in parallel
+
+Monte Carlo run:
+to avoid data races when sampledTrades add their sampled pnlPath:
+- first create a `vector<vector<SampledTrade>>` in sampleNTrades of size N
+- so that each sampleTrade only moves their generated pnlPath to their index
+
