@@ -136,3 +136,16 @@ label[i] = state      (if past warmup)
 - position.regime = label[entry_index]
 
 
+# Parallelization
+should be able to parallize monte carlo runs and store results 
+- what should I produce and store from each monte carlo run?
+1. full pnl path, <pnl, regime>
+
+Each run gets a seeded generator
+- can't pass generator by reference, since it would then be shared and ran concurrently
+- each run needs own generator (either constructed inside run from seed, or passed by value)
+  - seed per run (determinstic) = base_seed + run_index
+
+analytics on the equity paths can be performed after parllel sampling of trades are done and we have full run results
+
+can then compute statistics from them in parallel
