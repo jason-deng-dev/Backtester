@@ -136,6 +136,8 @@ class Analytics {
   double endEquity{};
 
 public:
+  const std::vector<PositionRecord>& getPositionRecords() const {return positionRecords;}
+
   bool captureState(const State &state);
 
   void recordInfo(const std::vector<Execution> &executions,
