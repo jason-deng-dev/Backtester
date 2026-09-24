@@ -92,16 +92,15 @@ write classifer as a causal function
 
 ## How to classify regime
 
-Volatility thresholding 
+Volatility thresholding
 
 - compute daily realized vol
 - label by quantiles of the trailing distribution, splitting into volatile and calm periods
 
-- allow custom parameter based classificaiton 
+- allow custom parameter based classificaiton
 
 volatile = trailing vol above 70th percentile
 calm = trailing vol below 30th percentile
-
 
 ## workflow
 
@@ -110,12 +109,14 @@ classifyRegime(State& , double volThreshold, double calmThreshold, int rollingWi
 Output: `vector<Regime>` aligned with barSnapshots
 
 1. calculate rolling volatity
+
 - compute per-bar returns
 - realized vol at bar i = std dev of the last W returns (eg. W = 20 trading days)
 
 1. Causal threshold
-at each bar i, look at window of the last T vol values (T = 252, one trading year), and compute
-- high_i = 75th percentile of {vol_{i-T+1}...vol_i}
+   at each bar i, look at window of the last T vol values (T = 252, one trading year), and compute
+
+- high*i = 75th percentile of {vol*{i-T+1}...vol_i}
 - low_i = 60th percentile of the same window
 
 threshold drift over time: "volatile in 2020 means something different than in 2017
@@ -123,25 +124,31 @@ threshold drift over time: "volatile in 2020 means something different than in 2
 3. hysteresis state machine
 
 walk forward through bars, carrying one piece of state: the current regime
+
 ```c
 if vol_i or thresholds_i don't exist yet:      label[i] = WARMUP
 else if state == CALM  and vol_i > high_i:     state = VOLATILE
 else if state == VOLATILE and vol_i < low_i:   state = CALM
 label[i] = state      (if past warmup)
 ```
+
 - intial state = CALM after warmup
 
 4. Tagging positions
+
 - Take position's entry time (openTime), find index of that bar (date -> index map)
 - position.regime = label[entry_index]
 
-
 # Parallelization
-should be able to parallize monte carlo runs and store results 
+
+should be able to parallize monte carlo runs and store results
+
 - what should I produce and store from each monte carlo run?
+
 1. full pnl path, <pnl, regime>
 
 Each run gets a seeded generator
+
 - can't pass generator by reference, since it would then be shared and ran concurrently
 - each run needs own generator (either constructed inside run from seed, or passed by value)
   - seed per run (determinstic) = base_seed + run_index
@@ -152,6 +159,26 @@ can then compute statistics from them in parallel
 
 Monte Carlo run:
 to avoid data races when sampledTrades add their sampled pnlPath:
+
 - first create a `vector<vector<SampledTrade>>` in sampleNTrades of size N
 - so that each sampleTrade only moves their generated pnlPath to their index
 
+# Analytics
+
+from vector<sampledTrades<pnl, regime>>
+
+- calculate percentile of outcomes
+- drawdown distributions
+- ending account distrbutions
+- peak and trough
+
+void computePathStatistics(int startingBalance);
+
+for each of path in std::vector<std::vector<SampledTrade>> sampledTrades
+
+produce
+struct Outcome{
+  peak, trough, end account balance, drawdown
+}
+and store in 
+std::vector<Outcome> outcomes;
