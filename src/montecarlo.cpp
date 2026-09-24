@@ -111,7 +111,7 @@ void MonteCarlo::computePathStat(int n, double startingBalance) {
     balance += balance * trade.fractionalReturn;
     peak = std::max(peak, balance);
     trough = std::min(trough, balance);
-    maxDrawDown = std::max(maxDrawDown, (peak-balance)/peak);
+    maxDrawDown = std::max(maxDrawDown, (peak - balance) / peak);
   }
 
   outcomes[n] = {peak, trough, balance, maxDrawDown};
@@ -129,4 +129,23 @@ void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
   }
 }
 
-void MonteCarlo::computeAllPathStatParallel(double startingBalance) {}
+void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
+  int size = sampledTrades.size();
+  if (size == 0) {
+    throw std::logic_error("sampledTrades is empty");
+  }
+  outcomes.resize(size);
+
+  auto C = std::thread::hardware_concurrency();
+  std::vector<std::thread> threads;
+  for (unsigned t = 0; t < C; ++t) {
+    threads.emplace_back([&, t] {
+      for (size_t i = t; i < size; i += C) {
+        computePathStat(i, startingBalance);
+      }
+    });
+  }
+  for (auto &th : threads) {
+    th.join();
+  }
+}
