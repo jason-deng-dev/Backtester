@@ -1,8 +1,10 @@
 - [x] add regime logic 
-- [ ] Reshuffling of trade outcomes
-  - [ ] sample with replacement, until create one full equity path
-  - [ ] perform many times
-- [ ] 
+- [x] Reshuffling of trade outcomes
+- [x] Compute statistics on trade paths
+- [ ] Testing
+  - [ ] Regime classifcation
+  - [ ] reshuffling
+  - [ ] compute statics
 
 
 

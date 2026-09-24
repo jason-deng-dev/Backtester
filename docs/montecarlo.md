@@ -182,3 +182,13 @@ struct Outcome{
 }
 and store in 
 std::vector<Outcome> outcomes;
+
+# Regime Monte Carlo
+  1. classify each trade into regime
+  2. create transition matrix
+  first count transitions, then normalize into percentage
+  calm -> calm, calm -> vol
+  vol->calm   , vol->vol
+  3. simulate trade
+  randomly select starting regime and sample trade
+  using transition matrix select another regime, and sample from that regime ...
