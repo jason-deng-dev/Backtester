@@ -172,7 +172,7 @@ from vector<sampledTrades<pnl, regime>>
 - ending account distrbutions
 - peak and trough
 
-void computePathStatistics(int startingBalance);
+void computePathStatistics(double startingBalance);
 
 for each of path in std::vector<std::vector<SampledTrade>> sampledTrades
 

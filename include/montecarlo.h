@@ -1,20 +1,13 @@
 #pragma once
 
 #include "analytics.h"
-#include "rollingwindow.h"
 #include "state.h"
-#include <algorithm>
 #include <cstddef>
 #include <cstdlib>
-#include <iterator>
-#include <limits>
-#include <random>
-#include <stdexcept>
 #include <string>
-#include <thread>
 #include <unordered_map>
-#include <utility>
 #include <vector>
+
 
 enum class Regime { WARMUP, VOLATILE, CALM };
 
@@ -43,9 +36,11 @@ public:
   // GPU
   void sampleTradesCUDA(int n, int seed, const Analytics &analytics);
 
-  void computeAllPathStatSerial(int startingBalance);
+  void computeAllPathStatSerial(double startingBalance);
 
-  void computePathStat(int n, int startingBalance);
+  void computeAllPathStatParallel(double startingBalance);
+
+  void computePathStat(int n, double startingBalance);
 
   void classifyRegime(const State &state, double volPercentile = 0.75,
                       double calmPercentile = 0.6, int returnLookback = 20,
@@ -56,7 +51,7 @@ public:
   }
 
 private:
-  std::vector<Outcome> outcomes;
+  std::vector<sampleOutcome> outcomes;
   std::unordered_map<std::string, std::size_t> dateToIndexMap;
   std::vector<Regime> regimes;
   std::vector<std::vector<SampledTrade>> sampledTrades;

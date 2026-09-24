@@ -1,4 +1,13 @@
 #include "montecarlo.h"
+#include "analytics.h"
+#include "rollingwindow.h"
+#include <algorithm>
+#include <iterator>
+#include <limits>
+#include <random>
+#include <stdexcept>
+#include <thread>
+#include <utility>
 
 void MonteCarlo::classifyRegime(const State &state, double volPercentile,
                                 double calmPercentile, int returnLookback,
@@ -89,12 +98,26 @@ void MonteCarlo::sampleTradesParallel(int n, int seed,
 }
 
 /*-----------------------Compute Path Stats-----------------------------*/
-void MonteCarlo::computePathStat(int n, int startingBalance) {
-  double maxDrawDown{0};
-  double runningPeak{-std::numeric_limits<double>::infinity()};
+void MonteCarlo::computePathStat(int n, double startingBalance) {
+  double balance = startingBalance;
+
+  double maxDrawDown{0}; // Drawdown_t = (Peak_t-V_t)/Peak_t
+  double peak{balance};
+  double trough{balance};
+
+  auto &tradePath = sampledTrades[n];
+
+  for (auto &trade : tradePath) {
+    balance += balance * trade.fractionalReturn;
+    peak = std::max(peak, balance);
+    trough = std::min(trough, balance);
+    maxDrawDown = std::max(maxDrawDown, (peak-balance)/peak);
+  }
+
+  outcomes[n] = {peak, trough, balance, maxDrawDown};
 }
 
-void MonteCarlo::computeAllPathStatSerial(int startingBalance) {
+void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
   int size = sampledTrades.size();
   if (size == 0) {
     throw std::logic_error("sampledTrades is empty");
@@ -105,3 +128,5 @@ void MonteCarlo::computeAllPathStatSerial(int startingBalance) {
     computePathStat(i, startingBalance);
   }
 }
+
+void MonteCarlo::computeAllPathStatParallel(double startingBalance) {}
