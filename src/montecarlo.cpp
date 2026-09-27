@@ -9,6 +9,7 @@
 #include <thread>
 #include <utility>
 
+
 void MonteCarlo::classifyRegime(const State &state, double volPercentile,
                                 double calmPercentile, int returnLookback,
                                 int volLookback) {
@@ -23,21 +24,37 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
 
   Regime currState = Regime::CALM;
   int index = 0;
+  double prevEquity{};
 
   for (auto &bar : bars) {
     dateToIndexMap[bar.date] = index++;
+
+    // returns are close-to-close between real bars; barSnapshots[0] is the
+    // "before trading" sentinel, not a market observation
+    if (index > 2 && prevEquity != 0) {
+      returnWindow.addVal(bar.equity / prevEquity - 1.0);
+      if (const auto vol = returnWindow.getStdDev()) {
+        volWindow.addVal(*vol);
+      }
+    }
+    prevEquity = bar.equity;
+
     const auto currVol = returnWindow.getStdDev();
     const auto currHigh = volWindow.getPercentile(volPercentile);
     const auto currLow = volWindow.getPercentile(calmPercentile);
 
-    if (!currVol || !currHigh) {
+    if (!currVol || !currHigh || !currLow) {
       regimes.push_back(Regime::WARMUP);
     } else {
       if (currState == Regime::CALM && *currVol > *currHigh) {
+        transitionCountMap[RegimeSwitch::CalmToVol]++;
         currState = Regime::VOLATILE;
       } else if (currState == Regime::VOLATILE && *currVol < *currLow) {
+        transitionCountMap[RegimeSwitch::VolToCalm]++;
         currState = Regime::CALM;
       }
+      if (currState == Regime::CALM) transitionCountMap[RegimeSwitch::CalmToCalm]++;
+      if (currState == Regime::VOLATILE) transitionCountMap[RegimeSwitch::VolToVol]++;
       regimes.push_back(currState);
     }
   }
