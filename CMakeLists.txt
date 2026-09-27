@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+# Emit build/compile_commands.json so clangd can resolve project headers.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -41,10 +44,19 @@ add_executable(backtesting_test
   tests/backtesting_test.cc
 )
 
+add_executable(montecarlo_test
+ tests/montecarlo_test.cc
+)
+
 target_compile_definitions(backtesting_test PRIVATE
   TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
 
 target_link_libraries(backtesting_test PRIVATE
+  GTest::gtest_main
+  backtester_core
+)
+
+target_link_libraries(montecarlo_test PRIVATE_HEADER
   GTest::gtest_main
   backtester_core
 )
