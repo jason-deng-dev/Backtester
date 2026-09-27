@@ -9,7 +9,6 @@
 #include <thread>
 #include <utility>
 
-
 void MonteCarlo::classifyRegime(const State &state, double volPercentile,
                                 double calmPercentile, int returnLookback,
                                 int volLookback) {
@@ -25,6 +24,9 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
   Regime currState = Regime::CALM;
   int index = 0;
   double prevEquity{};
+
+  // handles first phantom transition (before have prior state)
+  bool hasLabeled = false;
 
   for (auto &bar : bars) {
     dateToIndexMap[bar.date] = index++;
@@ -46,19 +48,29 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
     if (!currVol || !currHigh || !currLow) {
       regimes.push_back(Regime::WARMUP);
     } else {
-      if (currState == Regime::CALM && *currVol > *currHigh) {
+      if (!hasLabeled) {
+        hasLabeled = true;
+        
+      }
+      else if (currState == Regime::CALM && *currVol > *currHigh) {
         transitionCountMap[RegimeSwitch::CalmToVol]++;
         currState = Regime::VOLATILE;
       } else if (currState == Regime::VOLATILE && *currVol < *currLow) {
         transitionCountMap[RegimeSwitch::VolToCalm]++;
         currState = Regime::CALM;
+      } else {
+        if (currState == Regime::CALM)
+          transitionCountMap[RegimeSwitch::CalmToCalm]++;
+        if (currState == Regime::VOLATILE)
+          transitionCountMap[RegimeSwitch::VolToVol]++;
       }
-      if (currState == Regime::CALM) transitionCountMap[RegimeSwitch::CalmToCalm]++;
-      if (currState == Regime::VOLATILE) transitionCountMap[RegimeSwitch::VolToVol]++;
+
       regimes.push_back(currState);
     }
   }
 }
+
+void MonteCarlo::createTransitionMatrix() {}
 
 /*-----------------------Sample Trades-----------------------------*/
 
