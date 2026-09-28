@@ -183,6 +183,8 @@ and store in
 std::vector<Outcome> outcomes;
 
 # Regime Monte Carlo
+
+Steps:
   1. classify each trade into regime
   2. create transition matrix
   first count transitions, then normalize into percentage
@@ -191,3 +193,9 @@ std::vector<Outcome> outcomes;
   3. simulate trade
   randomly select starting regime and sample trade
   using transition matrix select another regime, and sample from that regime ...
+
+- during classification of regimes, our intial state is set to calm, which we ignore so it doesn't get counted into transitionCountMap
+- Invariant before sampleTradesSerial/Parallel/GPU is that classifyRegime is ran before hand to setup Regime data
+- randomly selected starting regime is based on overall distribution of Volatile and Calm regimes
+  - note that since our inital state
+

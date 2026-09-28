@@ -13,6 +13,7 @@
 - [x] ensure don't create more threads than needed in concurrent functions
   - [x] and handle case when std::hardware_concurrency() returns 0
 - [x] have sampleTrades pass positionRecords directly to sampleTrade
+- [x] package regime data into struct
 
 
 - [x] Backtester

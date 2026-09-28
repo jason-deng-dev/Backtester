@@ -31,7 +31,7 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
   bool hasLabeled = false;
 
   for (auto &bar : bars) {
-    dateToIndexMap[bar.date] = index++;
+    regimeData.dateToIndexMap[bar.date] = index++;
 
     // returns are close-to-close between real bars; barSnapshots[0] is the
     // "before trading" sentinel, not a market observation
@@ -48,31 +48,40 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
     const auto currLow = volWindow.getPercentile(calmPercentile);
 
     if (!currVol || !currHigh || !currLow) {
-      regimes.push_back(Regime::WARMUP);
+      regimeData.regimes.push_back(Regime::WARMUP);
     } else {
 
       if (currState == Regime::CALM && *currVol > *currHigh) {
         if (hasLabeled)
-          transitionCountMap[RegimeSwitch::CalmToVol]++;
+          regimeData.transitionCountMap[RegimeSwitch::CalmToVol]++;
         currState = Regime::VOLATILE;
       } else if (currState == Regime::VOLATILE && *currVol < *currLow) {
-        transitionCountMap[RegimeSwitch::VolToCalm]++;
+        regimeData.transitionCountMap[RegimeSwitch::VolToCalm]++;
         currState = Regime::CALM;
       } else {
         if (currState == Regime::CALM && hasLabeled)
-          transitionCountMap[RegimeSwitch::CalmToCalm]++;
+          regimeData.transitionCountMap[RegimeSwitch::CalmToCalm]++;
         if (currState == Regime::VOLATILE) {
-          transitionCountMap[RegimeSwitch::VolToVol]++;
+          regimeData.transitionCountMap[RegimeSwitch::VolToVol]++;
         }
       }
+      if (currState == Regime::CALM) ++regimeData.calmCount;
+      else if (currState == Regime::VOLATILE) ++regimeData.volCount;
+
       hasLabeled = true;
-      regimes.push_back(currState);
+      regimeData.regimes.push_back(currState);
     }
   }
+
+
+
   createTransitionMatrix();
 }
 
 void MonteCarlo::createTransitionMatrix() {
+  auto &transitionCountMap = regimeData.transitionCountMap;
+  auto &transitionMatrix = regimeData.transitionMatrix;
+
   int totalCalm = transitionCountMap[RegimeSwitch::CalmToCalm] +
                   transitionCountMap[RegimeSwitch::CalmToVol];
   int totalVol = transitionCountMap[RegimeSwitch::VolToVol] +
@@ -98,8 +107,7 @@ void MonteCarlo::sampleTrade(
   tradePath.reserve(recordSize);
 
   std::mt19937 gen(seed + i);
-  std::uniform_int_distribution<std::size_t> dist(0,
-                                                  positionRecords.size() - 1);
+  std::uniform_int_distribution<std::size_t> dist(0, recordSize - 1);
   while (tradePath.size() < recordSize) {
     auto &position = positionRecords[dist(gen)];
     tradePath.push_back({position.pnl / std::abs(position.entryNotional),
@@ -156,9 +164,19 @@ Sample from positionRecords where regime = currRegime
 use transition matrix to select next regime
 */
   std::vector<SampledTrade> tradePath;
+
+  auto calmSize = calmPositions.size();
+  auto volSize = volPositions.size();
+
+  std::mt19937 gen(seed + i);
+  std::uniform_int_distribution<std::size_t> calmDist(0, calmSize - 1);
+  std::uniform_int_distribution<std::size_t> volDist(0, volSize - 1);
   
+  // find %chance of being calm / vol regime
+  // from transitionCountMap have count of: C->C, C->V, V->C, V->V
+  // total V = count(C->V + V->V), total C = count(C->C, V->C)
 
-
+  
 
 
 }

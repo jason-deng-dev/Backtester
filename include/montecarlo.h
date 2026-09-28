@@ -3,6 +3,7 @@
 #include "analytics.h"
 #include "state.h"
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
@@ -22,6 +23,26 @@ struct sampleOutcome {
   double trough;
   double balance;
   double maxDrawdown;
+};
+
+struct RegimeData {
+  std::unordered_map<RegimeSwitch, std::vector<double>> transitionPnls {};
+  std::unordered_map<RegimeSwitch, int> transitionCountMap {};
+  std::unordered_map<RegimeSwitch, double> transitionMatrix{ };
+  std::vector<Regime> regimes {};
+  std::unordered_map<std::string, std::size_t> dateToIndexMap {};
+  int calmCount = 0;
+  int volCount = 0;
+
+  Regime getRegime(const std::string &date) const {
+    return regimes.at(dateToIndexMap.at(date));
+  }
+
+  double getTransitionProb(RegimeSwitch rs) const {
+    if (!transitionMatrix.count(rs))
+      throw std::invalid_argument("Regime switch not found");
+    return transitionMatrix.at(rs);
+  }
 };
 
 class MonteCarlo {
@@ -55,26 +76,22 @@ public:
                       double calmPercentile = 0.6, int returnLookback = 20,
                       int volLookback = 252);
 
+  const RegimeData &getRegimeData() const { return regimeData; }
+
   Regime getRegime(const std::string &date) const {
-    return regimes.at(dateToIndexMap.at(date));
+    return regimeData.getRegime(date);
   }
 
   void createTransitionMatrix();
 
   double getTransitionProb(RegimeSwitch rs) const {
-    if (!transitionMatrix.count(rs))
-      throw std::invalid_argument("Regime switch not found");
-    return transitionMatrix.at(rs);
+    return regimeData.getTransitionProb(rs);
   }
 
   /*-----------------------Regime Analytics-----------------------------*/
 
 private:
-  std::unordered_map<RegimeSwitch, std::vector<double>> transitionPnls;
-  std::unordered_map<RegimeSwitch, int> transitionCountMap;
-  std::unordered_map<RegimeSwitch, double> transitionMatrix;
+  RegimeData regimeData{};
   std::vector<sampleOutcome> outcomes;
-  std::unordered_map<std::string, std::size_t> dateToIndexMap;
-  std::vector<Regime> regimes;
   std::vector<std::vector<SampledTrade>> sampledTrades;
 };
