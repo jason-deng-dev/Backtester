@@ -61,8 +61,9 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
       } else {
         if (currState == Regime::CALM && hasLabeled)
           transitionCountMap[RegimeSwitch::CalmToCalm]++;
-        if (currState == Regime::VOLATILE)
+        if (currState == Regime::VOLATILE) {
           transitionCountMap[RegimeSwitch::VolToVol]++;
+        }
       }
       hasLabeled = true;
       regimes.push_back(currState);
@@ -87,11 +88,9 @@ void MonteCarlo::createTransitionMatrix() {
 
 /*-----------------------Sample Trades-----------------------------*/
 
-void MonteCarlo::sampleTrades(int seed, int i, const Analytics &analytics) {
+void MonteCarlo::sampleTrade(int seed, int i, const std::vector<PositionRecord>& positionRecords) {
   // keep sampling until fill until reach
   std::vector<SampledTrade> tradePath;
-
-  const auto &positionRecords = analytics.getPositionRecords();
   auto recordSize = positionRecords.size();
 
   tradePath.reserve(recordSize);
@@ -114,9 +113,10 @@ void MonteCarlo::sampleTradesSerial(int n, int seed,
   if (n == 0) {
     throw std::logic_error("Can't sample 0 trades");
   }
+  const auto &positionRecords = analytics.getPositionRecords();
   sampledTrades.resize(n);
   for (int i = 0; i < n; ++i) {
-    sampleTrades(seed, i, analytics);
+    sampleTrade(seed, i, positionRecords);
   }
 }
 
@@ -125,6 +125,9 @@ void MonteCarlo::sampleTradesParallel(int n, int seed,
   if (n == 0) {
     throw std::logic_error("Can't sample 0 trades");
   }
+
+  const auto &positionRecords = analytics.getPositionRecords();
+
   sampledTrades.resize(n);
 
   unsigned hw = std::thread::hardware_concurrency();
@@ -134,13 +137,41 @@ void MonteCarlo::sampleTradesParallel(int n, int seed,
   for (unsigned t = 0; t < num_threads; ++t) {
     threads.emplace_back([&, t] {
       for (size_t i = t; i < n; i += num_threads) {
-        sampleTrades(seed, i, analytics);
+        sampleTrade(seed, i, positionRecords);
       }
     });
   }
   for (auto &th : threads)
     th.join();
 }
+
+void MonteCarlo ::sampleTradeRegime(int seed, int i,
+                                     const Analytics &analytics) {
+  std::vector<SampledTrade> tradePath;
+
+  const auto& positionRecords = analytics.getPositionRecords();
+  
+  std::vector<PositionRecord> calmPositions;
+  std::vector<PositionRecord> volPositions;
+
+  for (auto& pos: positionRecords) {
+    if (pos.openTime)
+  }
+
+
+  /*
+  Randomly select starting regime : currRegime
+  Sample from positionRecords where regime = currRegime
+  use transition matrix to select next regime
+  */
+}
+
+void MonteCarlo::sampleTradesRegimeSerial(int n, int seed, const Analytics& analytics) {
+
+}
+
+
+
 
 /*-----------------------Compute Path Stats-----------------------------*/
 void MonteCarlo::computePathStat(int n, double startingBalance) {
@@ -184,9 +215,11 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
   unsigned hw = std::thread::hardware_concurrency();
   auto num_threads = std::min(hw != 0 ? hw : 1, static_cast<unsigned>(n));
   std::vector<std::thread> threads;
-  for (unsigned t = 0; t < num_threads; ++t) {
+
+  for (unsigned t = 0; t < num_threads; ++t) { // for each thread
     threads.emplace_back([&, t] {
-      for (size_t i = t; i < n; i += num_threads) {
+      for (size_t i = t; i < n;
+           i += num_threads) { // evenly distribute work amoung them
         computePathStat(i, startingBalance);
       }
     });
@@ -195,6 +228,3 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
     th.join();
   }
 }
-
-/*-----------------------Sample Trades Regime-----------------------------*/
-void Monte

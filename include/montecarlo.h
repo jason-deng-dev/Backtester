@@ -29,18 +29,21 @@ public:
   /*========================Base Monte Carlo===============================*/
 
   /*-----------------------Sample Trades-----------------------------*/
-  void sampleTrades(int seed, int i, const Analytics &analytics);
+  void sampleTrade(int seed, int i, const std::vector<PositionRecord>& positionRecords);
   void sampleTradesSerial(int n, int seed, const Analytics &analytics);
   void sampleTradesParallel(int n, int seed, const Analytics &analytics);
-  void sampleTradesCUDA(int n, int seed, const Analytics &analytics);
+  void sampleTradesGPU(int n, int seed, const Analytics &analytics);
 
-  void sampleTradesRegime(int seed, int i, const Analytics &analytics);
+  void sampleTradeRegime(int seed, int i, const Analytics &analytics);
+  void sampleTradesRegimeSerial(int n, int seed, const Analytics& analytics);
+  void sampleTradesRegimeParallel(int n, int seed, const Analytics& analytics);
+  void sampleTradesRegimeGPU(int n, int seed, const Analytics& analytics);
 
   /*-----------------------Compute Path Stats-----------------------------*/
   void computePathStat(int n, double startingBalance);
   void computeAllPathStatSerial(double startingBalance);
   void computeAllPathStatParallel(double startingBalance);
-  void computeAllPathStatCUDA(double startingBalance);
+  void computeAllPathStatGPU(double startingBalance);
 
   /*===================Regime Switching Monte Carlo==========================*/
 
@@ -55,14 +58,16 @@ public:
 
   void createTransitionMatrix();
 
-  double getTransitionProbability(RegimeSwitch rs) const {
+  double getTransitionProb(RegimeSwitch rs) const {
     if (!transitionMatrix.count(rs))
       throw std::invalid_argument("Regime switch not found");
     return transitionMatrix.at(rs);
   }
+
   /*-----------------------Regime Analytics-----------------------------*/
 
 private:
+  std::unordered_map<RegimeSwitch, std::vector<double>> transitionPnls;
   std::unordered_map<RegimeSwitch, int> transitionCountMap;
   std::unordered_map<RegimeSwitch, double> transitionMatrix;
   std::vector<sampleOutcome> outcomes;
