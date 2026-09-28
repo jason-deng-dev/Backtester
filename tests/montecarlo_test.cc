@@ -96,13 +96,13 @@ TEST(MonteCarloTest, createTransitionMatrix) {
   mc.classifyRegime(st, 0.75, 0.6, 5, 10);
   mc.createTransitionMatrix();
 
-  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::VolToVol),
+  EXPECT_DOUBLE_EQ(mc.getTransitionProb(RegimeSwitch::VolToVol),
                    21 / 23.0);
-  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::VolToCalm),
+  EXPECT_DOUBLE_EQ(mc.getTransitionProb(RegimeSwitch::VolToCalm),
                    2 / 23.0);
-  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::CalmToCalm),
+  EXPECT_DOUBLE_EQ(mc.getTransitionProb(RegimeSwitch::CalmToCalm),
                    31 / 32.0);
-  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::CalmToVol),
+  EXPECT_DOUBLE_EQ(mc.getTransitionProb(RegimeSwitch::CalmToVol),
                    1 / 32.0);
 }
 

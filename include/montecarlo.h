@@ -29,15 +29,18 @@ public:
   /*========================Base Monte Carlo===============================*/
 
   /*-----------------------Sample Trades-----------------------------*/
-  void sampleTrade(int seed, int i, const std::vector<PositionRecord>& positionRecords);
+  void sampleTrade(int i, int seed,
+                   const std::vector<PositionRecord> &positionRecords);
   void sampleTradesSerial(int n, int seed, const Analytics &analytics);
   void sampleTradesParallel(int n, int seed, const Analytics &analytics);
   void sampleTradesGPU(int n, int seed, const Analytics &analytics);
 
-  void sampleTradeRegime(int seed, int i, const Analytics &analytics);
-  void sampleTradesRegimeSerial(int n, int seed, const Analytics& analytics);
-  void sampleTradesRegimeParallel(int n, int seed, const Analytics& analytics);
-  void sampleTradesRegimeGPU(int n, int seed, const Analytics& analytics);
+  void sampleTradeRegime(int i, int seed,
+                         const std::vector<PositionRecord> &calmPositions,
+                         const std::vector<PositionRecord> &volPositions);
+  void sampleTradesRegimeSerial(int n, int seed, const Analytics &analytics);
+  void sampleTradesRegimeParallel(int n, int seed, const Analytics &analytics);
+  void sampleTradesRegimeGPU(int n, int seed, const Analytics &analytics);
 
   /*-----------------------Compute Path Stats-----------------------------*/
   void computePathStat(int n, double startingBalance);

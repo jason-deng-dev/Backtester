@@ -88,7 +88,8 @@ void MonteCarlo::createTransitionMatrix() {
 
 /*-----------------------Sample Trades-----------------------------*/
 
-void MonteCarlo::sampleTrade(int seed, int i, const std::vector<PositionRecord>& positionRecords) {
+void MonteCarlo::sampleTrade(
+    int i, int seed, const std::vector<PositionRecord> &positionRecords) {
   // keep sampling until fill until reach
   std::vector<SampledTrade> tradePath;
   auto recordSize = positionRecords.size();
@@ -145,33 +146,75 @@ void MonteCarlo::sampleTradesParallel(int n, int seed,
     th.join();
 }
 
-void MonteCarlo ::sampleTradeRegime(int seed, int i,
-                                     const Analytics &analytics) {
+void MonteCarlo ::sampleTradeRegime(
+    int i, int seed, const std::vector<PositionRecord> &calmPositions,
+    const std::vector<PositionRecord> &volPositions) {
+  /*
+Randomly select starting regime : currRegime
+Sample from positionRecords where regime = currRegime
+use transition matrix to select next regime
+*/
   std::vector<SampledTrade> tradePath;
+}
 
-  const auto& positionRecords = analytics.getPositionRecords();
-  
+void MonteCarlo::sampleTradesRegimeSerial(int n, int seed,
+                                          const Analytics &analytics) {
+  if (n == 0) {
+    throw std::logic_error("Can't sample 0 trades");
+  }
+  const auto &positionRecords = analytics.getPositionRecords();
+  sampledTrades.resize(n);
+
   std::vector<PositionRecord> calmPositions;
   std::vector<PositionRecord> volPositions;
 
-  for (auto& pos: positionRecords) {
-    if (pos.openTime)
+  for (auto &pos : positionRecords) {
+    // note by design, trade is tagged with regime based on entry time
+    if (getRegime(pos.openTime) == Regime::CALM) {
+      calmPositions.push_back(pos);
+    } else if (getRegime(pos.openTime) == Regime::VOLATILE) {
+      volPositions.push_back(pos);
+    }
   }
 
-
-  /*
-  Randomly select starting regime : currRegime
-  Sample from positionRecords where regime = currRegime
-  use transition matrix to select next regime
-  */
+  for (int i = 0; i < n; ++i) {
+    sampleTradeRegime(seed, i, calmPositions, volPositions);
+  }
 }
 
-void MonteCarlo::sampleTradesRegimeSerial(int n, int seed, const Analytics& analytics) {
+void MonteCarlo::sampleTradesRegimeParallel(int n, int seed,
+                                            const Analytics &analytics) {
+  if (n == 0) {
+    throw std::logic_error("Can't sample 0 trades");
+  }
+  const auto &positionRecords = analytics.getPositionRecords();
+  sampledTrades.resize(n);
 
+  std::vector<PositionRecord> calmPositions;
+  std::vector<PositionRecord> volPositions;
+
+  for (auto &pos : positionRecords) {
+    // note by design, trade is tagged with regime based on entry time
+    if (getRegime(pos.openTime) == Regime::CALM) {
+      calmPositions.push_back(pos);
+    } else if (getRegime(pos.openTime) == Regime::VOLATILE) {
+      volPositions.push_back(pos);
+    }
+  }
+  unsigned hw = std::thread::hardware_concurrency();
+  auto num_threads = std::min(hw != 0 ? hw : 1, static_cast<unsigned>(n));
+
+  std::vector<std::thread> threads;
+  for (unsigned t = 0; t < num_threads; ++t) {
+    threads.emplace_back([&, t] {
+      for (size_t i = t; i < n; i += num_threads) {
+        sampleTradeRegime(seed, i, calmPositions, volPositions);
+      }
+    });
+  }
+  for (auto &th : threads)
+    th.join();
 }
-
-
-
 
 /*-----------------------Compute Path Stats-----------------------------*/
 void MonteCarlo::computePathStat(int n, double startingBalance) {
