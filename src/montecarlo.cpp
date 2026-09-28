@@ -67,7 +67,14 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
   }
 }
 
-void MonteCarlo::createTransitionMatrix() {}
+void MonteCarlo::createTransitionMatrix() {
+  int totalCalm = transitionCountMap[RegimeSwitch::CalmToCalm] + transitionCountMap[RegimeSwitch::CalmToVol];
+  int totalVol = transitionCountMap[RegimeSwitch::VolToVol] + transitionCountMap[RegimeSwitch::VolToCalm];
+  transitionMatrix[RegimeSwitch::CalmToCalm] = transitionCountMap[RegimeSwitch::CalmToCalm] / double(totalCalm);
+  transitionMatrix[RegimeSwitch::CalmToVol] = transitionCountMap[RegimeSwitch::CalmToVol] / double(totalCalm);
+  transitionMatrix[RegimeSwitch::VolToCalm] = transitionCountMap[RegimeSwitch::VolToCalm] / double(totalCalm);
+  transitionMatrix[RegimeSwitch::VolToVol] = transitionCountMap[RegimeSwitch::VolToVol] / double(totalCalm);
+}
 
 /*-----------------------Sample Trades-----------------------------*/
 

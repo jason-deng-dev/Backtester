@@ -1,52 +1,27 @@
-- [x] add regime logic 
 - [x] Reshuffling of trade outcomes
 - [x] Compute statistics on trade paths
+- [ ] Regime Monte Carlo
+  - [x] regime classification
+  - [x] create transition matrix
+  - [ ] regime sample run
+  - [ ] regime monte carlo
 - [ ] Testing
   - [ ] Regime classifcation
   - [ ] reshuffling
   - [ ] compute statics
+- [ ] ensure don't create more threads than needed in sampleTradeParallel
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```c
+unsigned long const min_per_thread = 25;
+unsigned long const max_threads = (length + min_per_thread - 1) / min_per_thread;
+unsigned long const hardware_threads = std::thread::hardware_concurrency();
+unsigned long const num_threads = std::min(hardware_threads != 0 ? hardware_threads : 2, max_threads);
+```
 
 - [x] Backtester
   - [x] MVP
-    - [x] Data feed 
-    - [x] State 
+    - [x] Data feed
+    - [x] State
     - [x] Strategy
     - [x] Backtest
   - [x] Issues
@@ -80,7 +55,7 @@
       - [x] z-score reversion
       - [x] moving average crossover
       - [x] random
-    - [x] Sizer  
+    - [x] Sizer
       - [x] Fixed fractional
       - [x] Vol target
         - [x] getStdDev use std::optional to return not ready
@@ -99,7 +74,7 @@
     - [x] RiskManager
   - [x] Tests
     - [x] DataFeed
-    - [x] State 
+    - [x] State
     - [x] Strategy
       - [x] SignalTest
         - [x] RandomSignal
@@ -114,6 +89,3 @@
         - [x] Bracket
     - [x] Backtest
     - [x] Analytics
-
-
-
