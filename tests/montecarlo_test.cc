@@ -78,3 +78,27 @@ TEST(MonteCarloTest, classifyRegimeWarmupBoundary) {
 }
 
 } // namespace classifyRegime
+
+TEST(MonteCarloTest, createTransitionMatrix) {
+  // 9 V's => 21 C's => 14 V's => 12 C's
+  // V to V: 21 => 21/23 =
+  // V to C: 2  => 2/23
+  // C to C: 31 => 31/32
+  // C to V: 1  => 1/32
+  DataFeed feed;
+  feed.load(TEST_FIXTURES_DIR "/regimeTest_bars.csv");
+  State st{0, 1};
+  Bar bar{};
+  while (feed.next(bar)) {
+    st.addBarSnapshot(bar.date, bar.close, bar.low, bar.high);
+  }
+
+  MonteCarlo mc {};
+  mc.classifyRegime(st, 0.75, 0.6, 5, 10);
+  mc.createTransitionMatrix();
+
+  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::VolToVol), 21/23.0);
+  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::VolToCalm), 2/23.0);
+  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::CalmToCalm), 31/32.0);
+  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::CalmToVol), 1/32.0);
+}

@@ -4,6 +4,7 @@
 #include "state.h"
 #include <cstddef>
 #include <cstdlib>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -53,7 +54,10 @@ public:
   void createTransitionMatrix();
 
   void sampleTradesRegime(int seed, int i , const Analytics &analytics);
-
+  double getTransitionProbability(RegimeSwitch rs) const {
+    if (!transitionMatrix.count(rs)) throw std::invalid_argument("Regime switch not found");
+    return transitionMatrix.at(rs);
+  }
   /*-----------------------Regime Analytics-----------------------------*/
 
 private:
