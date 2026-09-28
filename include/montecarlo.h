@@ -9,6 +9,7 @@
 #include <vector>
 
 enum class Regime { WARMUP, VOLATILE, CALM };
+enum class RegimeSwitch {CalmToCalm, CalmToVol, VolToCalm, VolToVol};
 
 struct SampledTrade {
   double fractionalReturn;
@@ -27,7 +28,7 @@ public:
   /*========================Base Monte Carlo===============================*/
 
   /*-----------------------Sample Trades-----------------------------*/
-  void sampleTrade(int seed, int i, const Analytics &analytics);
+  void sampleTrades(int seed, int i, const Analytics &analytics);
   void sampleTradesSerial(int n, int seed, const Analytics &analytics);
   void sampleTradesParallel(int n, int seed, const Analytics &analytics);
   void sampleTradesCUDA(int n, int seed, const Analytics &analytics);
@@ -49,16 +50,17 @@ public:
     return regimes.at(dateToIndexMap.at(date));
   }
 
-  /*
+  void createTransitionMatrix();
 
-  */
+  void sampleTradesRegime(int seed, int i , const Analytics &analytics);
+
+  /*-----------------------Regime Analytics-----------------------------*/
 
 private:
+  std::unordered_map<RegimeSwitch, int> transitionCountMap;
+  std::unordered_map<RegimeSwitch, double> transitionMatrix;
   std::vector<sampleOutcome> outcomes;
   std::unordered_map<std::string, std::size_t> dateToIndexMap;
   std::vector<Regime> regimes;
   std::vector<std::vector<SampledTrade>> sampledTrades;
-
-
-
 };

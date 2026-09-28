@@ -166,7 +166,6 @@ to avoid data races when sampledTrades add their sampled pnlPath:
 # Analytics
 
 from vector<sampledTrades<pnl, regime>>
-
 - calculate percentile of outcomes
 - drawdown distributions
 - ending account distrbutions

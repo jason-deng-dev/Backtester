@@ -45,24 +45,30 @@ add_executable(backtesting_test
 )
 
 add_executable(montecarlo_test
- tests/montecarlo_test.cc
+  tests/montecarlo_test.cc
 )
 
 target_compile_definitions(backtesting_test PRIVATE
-  TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
+  TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
+)
+
+target_compile_definitions(montecarlo_test PRIVATE
+  TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
+)
 
 target_link_libraries(backtesting_test PRIVATE
   GTest::gtest_main
   backtester_core
 )
 
-target_link_libraries(montecarlo_test PRIVATE_HEADER
+target_link_libraries(montecarlo_test PRIVATE
   GTest::gtest_main
   backtester_core
 )
 
-include (GoogleTest)
+include(GoogleTest)
 gtest_discover_tests(backtesting_test)
+gtest_discover_tests(montecarlo_test)
 
 # setting up google benchmark
 
