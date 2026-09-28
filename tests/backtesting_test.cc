@@ -3,7 +3,7 @@
 #include "datafeed.h"
 #include "riskmanager.h"
 #include "rollingwindow.h"
-#include "signal.h"
+#include "stratSignal.h"
 #include "sizer.h"
 #include "state.h"
 #include "strategy.h"

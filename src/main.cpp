@@ -2,7 +2,7 @@
 #include "datafeed.h"
 #include "strategy.h"
 #include "sizer.h"
-#include "signal.h"
+#include "stratSignal.h"
 #include "riskmanager.h"
 #include "state.h"
 #include "analytics.h"

@@ -1,5 +1,5 @@
 #include "strategy.h"
-#include "signal.h"
+#include "stratSignal.h"
 #include "sizer.h"
 #include "riskmanager.h"
 

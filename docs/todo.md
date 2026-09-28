@@ -6,8 +6,8 @@
   - [ ] regime sample run
   - [ ] regime monte carlo
 - [ ] Testing
-  - [ ] Regime classifcation
-  - [ ] reshuffling
+  - [x] Regime classifcation
+  - [ ] sampling
   - [ ] compute statics
 - [ ] ensure don't create more threads than needed in sampleTradeParallel
 

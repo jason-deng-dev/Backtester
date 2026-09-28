@@ -1,12 +1,12 @@
 #include "datafeed.h"
 #include "montecarlo.h"
 #include "state.h"
-// must precede <gtest/gtest.h>: gtest pulls sys/wait.h, whose <signal.h>
-// resolves to THIS project's include/signal.h (-I include). If it hasn't
+// must precede <gtest/gtest.h>: gtest pulls sys/wait.h, whose <stratSignal.h>
+// resolves to THIS project's include/stratSignal.h (-I include). If it hasn't
 // been pragma-onced yet, its templates land inside sys/wait.h's
 // extern "C" block -> "template with C linkage". Renaming the project
 // header is the real fix.
-#include "signal.h"
+#include "stratSignal.h"
 #include <gtest/gtest.h>
 #include <string>
 
