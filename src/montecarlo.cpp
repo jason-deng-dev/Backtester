@@ -169,14 +169,39 @@ use transition matrix to select next regime
 
   auto calmSize = calmPositions.size();
   auto volSize = volPositions.size();
+  auto recordSize = calmSize + volSize;
+
+  if (calmSize == 0 || volSize == 0)
+    throw std::logic_error("sampleTradeRegime: empty regime bucket");
 
   std::mt19937 gen(seed + i);
   std::uniform_int_distribution<std::size_t> calmDist(0, calmSize - 1);
   std::uniform_int_distribution<std::size_t> volDist(0, volSize - 1);
 
-  // find %chance of being calm / vol regime
-  // from transitionCountMap have count of: C->C, C->V, V->C, V->V
-  // total V = count(C->V + V->V), total C = count(C->C, V->C)
+  double volProb = regimeData.getRegimeProb(Regime::VOLATILE);
+  std::bernoulli_distribution startVolDist(volProb);
+  Regime currRegime = startVolDist(gen) ? Regime::VOLATILE : Regime::CALM;
+
+  std::bernoulli_distribution volToVolDist(
+      regimeData.getTransitionProb(RegimeSwitch::VolToVol));
+  std::bernoulli_distribution calmToCalmDist(
+      regimeData.getTransitionProb(RegimeSwitch::CalmToCalm));
+
+  while (tradePath.size() < recordSize) {
+    auto &position = currRegime == Regime::VOLATILE
+                         ? volPositions[volDist(gen)]
+                         : calmPositions[calmDist(gen)];
+
+    tradePath.push_back({position.pnl / std::abs(position.entryNotional),
+                         currRegime});
+
+    if (currRegime == Regime::VOLATILE && !volToVolDist(gen)) {
+      currRegime = Regime::CALM;
+    } else if (currRegime == Regime::CALM && !calmToCalmDist(gen)) {
+      currRegime = Regime::VOLATILE;
+    }
+  }
+  sampledTrades[i] = std::move(tradePath);
 }
 
 void MonteCarlo::sampleTradesRegimeSerial(int n, int seed,
@@ -186,7 +211,7 @@ void MonteCarlo::sampleTradesRegimeSerial(int n, int seed,
   setupRegime(n, analytics, calmPositions, volPositions);
 
   for (int i = 0; i < n; ++i) {
-    sampleTradeRegime(seed, i, calmPositions, volPositions);
+    sampleTradeRegime(i, seed, calmPositions, volPositions);
   }
 }
 
@@ -203,7 +228,7 @@ void MonteCarlo::sampleTradesRegimeParallel(int n, int seed,
   for (unsigned t = 0; t < num_threads; ++t) {
     threads.emplace_back([&, t] {
       for (size_t i = t; i < n; i += num_threads) {
-        sampleTradeRegime(seed, i, calmPositions, volPositions);
+        sampleTradeRegime(i, seed, calmPositions, volPositions);
       }
     });
   }

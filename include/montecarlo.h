@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <random>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -42,6 +43,22 @@ struct RegimeData {
     if (!transitionMatrix.count(rs))
       throw std::invalid_argument("Regime switch not found");
     return transitionMatrix.at(rs);
+  }
+
+  double getRegimeProb(Regime r) const {
+    if (calmCount + volCount == 0) {
+      throw std::logic_error(
+          "no labeled regime data, call classifyRegime first");
+    }
+    if (r == Regime::WARMUP) {
+      throw std::invalid_argument(
+          "Warmup regime not valid choice, choose volatile or calm");
+    }
+
+    if (r == Regime::VOLATILE)
+      return double(volCount) / (calmCount + volCount);
+    else
+      return double(calmCount) / (calmCount + volCount);
   }
 };
 
