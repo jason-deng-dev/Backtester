@@ -26,11 +26,11 @@ struct sampleOutcome {
 };
 
 struct RegimeData {
-  std::unordered_map<RegimeSwitch, std::vector<double>> transitionPnls {};
-  std::unordered_map<RegimeSwitch, int> transitionCountMap {};
-  std::unordered_map<RegimeSwitch, double> transitionMatrix{ };
-  std::vector<Regime> regimes {};
-  std::unordered_map<std::string, std::size_t> dateToIndexMap {};
+  std::unordered_map<RegimeSwitch, std::vector<double>> transitionPnls{};
+  std::unordered_map<RegimeSwitch, int> transitionCountMap{};
+  std::unordered_map<RegimeSwitch, double> transitionMatrix{};
+  std::vector<Regime> regimes{};
+  std::unordered_map<std::string, std::size_t> dateToIndexMap{};
   int calmCount = 0;
   int volCount = 0;
 
@@ -46,9 +46,12 @@ struct RegimeData {
 };
 
 class MonteCarlo {
-public:
-  /*========================Base Monte Carlo===============================*/
+private:
+  void setupRegime(int n, const Analytics &analytics,
+                   std::vector<PositionRecord> &calmPositions,
+                   std::vector<PositionRecord> &volPositions);
 
+public:
   /*-----------------------Sample Trades-----------------------------*/
   void sampleTrade(int i, int seed,
                    const std::vector<PositionRecord> &positionRecords);
@@ -69,8 +72,6 @@ public:
   void computeAllPathStatParallel(double startingBalance);
   void computeAllPathStatGPU(double startingBalance);
 
-  /*===================Regime Switching Monte Carlo==========================*/
-
   /*-----------------------Regime classification-----------------------------*/
   void classifyRegime(const State &state, double volPercentile = 0.75,
                       double calmPercentile = 0.6, int returnLookback = 20,
@@ -87,8 +88,6 @@ public:
   double getTransitionProb(RegimeSwitch rs) const {
     return regimeData.getTransitionProb(rs);
   }
-
-  /*-----------------------Regime Analytics-----------------------------*/
 
 private:
   RegimeData regimeData{};

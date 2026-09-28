@@ -14,6 +14,7 @@
   - [x] and handle case when std::hardware_concurrency() returns 0
 - [x] have sampleTrades pass positionRecords directly to sampleTrade
 - [x] package regime data into struct
+- [x] refactor reused code in sampleTradeRegime... into private helper function
 
 
 - [x] Backtester

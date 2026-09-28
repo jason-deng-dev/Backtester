@@ -197,5 +197,4 @@ Steps:
 - during classification of regimes, our intial state is set to calm, which we ignore so it doesn't get counted into transitionCountMap
 - Invariant before sampleTradesSerial/Parallel/GPU is that classifyRegime is ran before hand to setup Regime data
 - randomly selected starting regime is based on overall distribution of Volatile and Calm regimes
-  - note that since our inital state
 
