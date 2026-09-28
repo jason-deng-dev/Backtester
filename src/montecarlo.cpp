@@ -128,7 +128,7 @@ void MonteCarlo::sampleTradesSerial(int n, int seed,
   const auto &positionRecords = analytics.getPositionRecords();
   sampledTrades.resize(n);
   for (int i = 0; i < n; ++i) {
-    sampleTrade(seed, i, positionRecords);
+    sampleTrade(i, seed, positionRecords);
   }
 }
 
@@ -149,7 +149,7 @@ void MonteCarlo::sampleTradesParallel(int n, int seed,
   for (unsigned t = 0; t < num_threads; ++t) {
     threads.emplace_back([&, t] {
       for (size_t i = t; i < n; i += num_threads) {
-        sampleTrade(seed, i, positionRecords);
+        sampleTrade(i, seed, positionRecords);
       }
     });
   }

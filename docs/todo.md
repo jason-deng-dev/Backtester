@@ -1,15 +1,15 @@
 - [x] Reshuffling of trade outcomes
 - [x] Compute statistics on trade paths
-- [ ] Regime Monte Carlo
+- [x] Regime Monte Carlo
   - [x] regime classification
   - [x] create transition matrix
   - [x] have to store SampleTrade
-  - [ ] regime sample run
+  - [x] regime sample run
   - [x] regime monte carlo
-- [ ] Testing
+- [x] Testing
   - [x] Regime classifcation
-  - [ ] sampling
-  - [ ] compute statics
+  - [x] sampling
+  - [x] compute statics
 - [x] ensure don't create more threads than needed in concurrent functions
   - [x] and handle case when std::hardware_concurrency() returns 0
 - [x] have sampleTrades pass positionRecords directly to sampleTrade

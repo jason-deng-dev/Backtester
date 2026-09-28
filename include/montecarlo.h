@@ -106,6 +106,12 @@ public:
     return regimeData.getTransitionProb(rs);
   }
 
+  const std::vector<std::vector<SampledTrade>> &getSampledTrades() const {
+    return sampledTrades;
+  }
+
+  const std::vector<sampleOutcome> &getOutcomes() const { return outcomes; }
+
 private:
   RegimeData regimeData{};
   std::vector<sampleOutcome> outcomes;
