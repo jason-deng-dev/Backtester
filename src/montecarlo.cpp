@@ -69,6 +69,7 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
       regimes.push_back(currState);
     }
   }
+  createTransitionMatrix();
 }
 
 void MonteCarlo::createTransitionMatrix() {
@@ -155,6 +156,11 @@ Sample from positionRecords where regime = currRegime
 use transition matrix to select next regime
 */
   std::vector<SampledTrade> tradePath;
+  
+
+
+
+
 }
 
 void MonteCarlo::sampleTradesRegimeSerial(int n, int seed,
