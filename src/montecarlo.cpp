@@ -15,6 +15,8 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
                                 double calmPercentile, int returnLookback,
                                 int volLookback) {
 
+  // reset regimeData before running
+  regimeData = {};
   // need std dev
   RollingWindow<double> returnWindow{returnLookback};
 
@@ -65,15 +67,15 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
           regimeData.transitionCountMap[RegimeSwitch::VolToVol]++;
         }
       }
-      if (currState == Regime::CALM) ++regimeData.calmCount;
-      else if (currState == Regime::VOLATILE) ++regimeData.volCount;
+      if (currState == Regime::CALM)
+        ++regimeData.calmCount;
+      else if (currState == Regime::VOLATILE)
+        ++regimeData.volCount;
 
       hasLabeled = true;
       regimeData.regimes.push_back(currState);
     }
   }
-
-
 
   createTransitionMatrix();
 }
@@ -171,14 +173,10 @@ use transition matrix to select next regime
   std::mt19937 gen(seed + i);
   std::uniform_int_distribution<std::size_t> calmDist(0, calmSize - 1);
   std::uniform_int_distribution<std::size_t> volDist(0, volSize - 1);
-  
+
   // find %chance of being calm / vol regime
   // from transitionCountMap have count of: C->C, C->V, V->C, V->V
   // total V = count(C->V + V->V), total C = count(C->C, V->C)
-
-  
-
-
 }
 
 void MonteCarlo::sampleTradesRegimeSerial(int n, int seed,
