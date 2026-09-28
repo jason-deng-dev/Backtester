@@ -10,7 +10,7 @@
 #include <vector>
 
 enum class Regime { WARMUP, VOLATILE, CALM };
-enum class RegimeSwitch {CalmToCalm, CalmToVol, VolToCalm, VolToVol};
+enum class RegimeSwitch { CalmToCalm, CalmToVol, VolToCalm, VolToVol };
 
 struct SampledTrade {
   double fractionalReturn;
@@ -34,6 +34,8 @@ public:
   void sampleTradesParallel(int n, int seed, const Analytics &analytics);
   void sampleTradesCUDA(int n, int seed, const Analytics &analytics);
 
+  void sampleTradesRegime(int seed, int i, const Analytics &analytics);
+
   /*-----------------------Compute Path Stats-----------------------------*/
   void computePathStat(int n, double startingBalance);
   void computeAllPathStatSerial(double startingBalance);
@@ -53,9 +55,9 @@ public:
 
   void createTransitionMatrix();
 
-  void sampleTradesRegime(int seed, int i , const Analytics &analytics);
   double getTransitionProbability(RegimeSwitch rs) const {
-    if (!transitionMatrix.count(rs)) throw std::invalid_argument("Regime switch not found");
+    if (!transitionMatrix.count(rs))
+      throw std::invalid_argument("Regime switch not found");
     return transitionMatrix.at(rs);
   }
   /*-----------------------Regime Analytics-----------------------------*/

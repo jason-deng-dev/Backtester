@@ -41,16 +41,17 @@ TEST(MonteCarloTest, classifyRegime) {
 
   // W = WARMUP, V = VOLATILE, C = CALM; expected[i] is the label for bar d(i+1)
   const std::string expected =
-      "WWWWWWWWWWWWWW" // d1 -d14: warmup
-      "VVVVVVVVV"      // d15-d23: volatile (d15 labeled hot immediately)
+      "WWWWWWWWWWWWWW"        // d1 -d14: warmup
+      "VVVVVVVVV"             // d15-d23: volatile (d15 labeled hot immediately)
       "CCCCCCCCCCCCCCCCCCCCC" // d24-d44: calm
       "VVVVVVVVVVVVVV"        // d45-d58: volatile
       "CCCCCCCCCCCC";         // d59-d70: calm
   ASSERT_EQ(expected.size(), feed.barCount());
 
   auto toRegime = [](char c) {
-    return c == 'W' ? Regime::WARMUP : c == 'V' ? Regime::VOLATILE
-                                                : Regime::CALM;
+    return c == 'W'   ? Regime::WARMUP
+           : c == 'V' ? Regime::VOLATILE
+                      : Regime::CALM;
   };
   for (std::size_t i = 0; i < expected.size(); ++i) {
     const std::string date = "d" + std::to_string(i + 1);
@@ -77,8 +78,6 @@ TEST(MonteCarloTest, classifyRegimeWarmupBoundary) {
   EXPECT_EQ(mc.getRegime("d15"), Regime::VOLATILE);
 }
 
-} // namespace classifyRegime
-
 TEST(MonteCarloTest, createTransitionMatrix) {
   // 9 V's => 21 C's => 14 V's => 12 C's
   // V to V: 21 => 21/23 =
@@ -93,12 +92,18 @@ TEST(MonteCarloTest, createTransitionMatrix) {
     st.addBarSnapshot(bar.date, bar.close, bar.low, bar.high);
   }
 
-  MonteCarlo mc {};
+  MonteCarlo mc{};
   mc.classifyRegime(st, 0.75, 0.6, 5, 10);
   mc.createTransitionMatrix();
 
-  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::VolToVol), 21/23.0);
-  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::VolToCalm), 2/23.0);
-  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::CalmToCalm), 31/32.0);
-  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::CalmToVol), 1/32.0);
+  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::VolToVol),
+                   21 / 23.0);
+  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::VolToCalm),
+                   2 / 23.0);
+  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::CalmToCalm),
+                   31 / 32.0);
+  EXPECT_DOUBLE_EQ(mc.getTransitionProbability(RegimeSwitch::CalmToVol),
+                   1 / 32.0);
 }
+
+} // namespace classifyRegime

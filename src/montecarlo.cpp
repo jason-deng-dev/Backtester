@@ -51,14 +51,15 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
       regimes.push_back(Regime::WARMUP);
     } else {
 
-      if (currState == Regime::CALM && *currVol > *currHigh ) {
-        if (hasLabeled) transitionCountMap[RegimeSwitch::CalmToVol]++;
+      if (currState == Regime::CALM && *currVol > *currHigh) {
+        if (hasLabeled)
+          transitionCountMap[RegimeSwitch::CalmToVol]++;
         currState = Regime::VOLATILE;
       } else if (currState == Regime::VOLATILE && *currVol < *currLow) {
         transitionCountMap[RegimeSwitch::VolToCalm]++;
         currState = Regime::CALM;
       } else {
-        if (currState == Regime::CALM && hasLabeled) 
+        if (currState == Regime::CALM && hasLabeled)
           transitionCountMap[RegimeSwitch::CalmToCalm]++;
         if (currState == Regime::VOLATILE)
           transitionCountMap[RegimeSwitch::VolToVol]++;
@@ -70,12 +71,18 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
 }
 
 void MonteCarlo::createTransitionMatrix() {
-  int totalCalm = transitionCountMap[RegimeSwitch::CalmToCalm] + transitionCountMap[RegimeSwitch::CalmToVol];
-  int totalVol = transitionCountMap[RegimeSwitch::VolToVol] + transitionCountMap[RegimeSwitch::VolToCalm];
-  transitionMatrix[RegimeSwitch::CalmToCalm] = transitionCountMap[RegimeSwitch::CalmToCalm] / double(totalCalm);
-  transitionMatrix[RegimeSwitch::CalmToVol] = transitionCountMap[RegimeSwitch::CalmToVol] / double(totalCalm);
-  transitionMatrix[RegimeSwitch::VolToCalm] = transitionCountMap[RegimeSwitch::VolToCalm] / double(totalVol);
-  transitionMatrix[RegimeSwitch::VolToVol] = transitionCountMap[RegimeSwitch::VolToVol] / double(totalVol);
+  int totalCalm = transitionCountMap[RegimeSwitch::CalmToCalm] +
+                  transitionCountMap[RegimeSwitch::CalmToVol];
+  int totalVol = transitionCountMap[RegimeSwitch::VolToVol] +
+                 transitionCountMap[RegimeSwitch::VolToCalm];
+  transitionMatrix[RegimeSwitch::CalmToCalm] =
+      transitionCountMap[RegimeSwitch::CalmToCalm] / double(totalCalm);
+  transitionMatrix[RegimeSwitch::CalmToVol] =
+      transitionCountMap[RegimeSwitch::CalmToVol] / double(totalCalm);
+  transitionMatrix[RegimeSwitch::VolToCalm] =
+      transitionCountMap[RegimeSwitch::VolToCalm] / double(totalVol);
+  transitionMatrix[RegimeSwitch::VolToVol] =
+      transitionCountMap[RegimeSwitch::VolToVol] / double(totalVol);
 }
 
 /*-----------------------Sample Trades-----------------------------*/
@@ -119,11 +126,14 @@ void MonteCarlo::sampleTradesParallel(int n, int seed,
     throw std::logic_error("Can't sample 0 trades");
   }
   sampledTrades.resize(n);
-  auto C = std::thread::hardware_concurrency();
+
+  unsigned hw = std::thread::hardware_concurrency();
+  auto num_threads = std::min(hw != 0 ? hw : 1, static_cast<unsigned>(n));
+
   std::vector<std::thread> threads;
-  for (unsigned t = 0; t < C; ++t) {
+  for (unsigned t = 0; t < num_threads; ++t) {
     threads.emplace_back([&, t] {
-      for (size_t i = t; i < n; i += C) {
+      for (size_t i = t; i < n; i += num_threads) {
         sampleTrades(seed, i, analytics);
       }
     });
@@ -165,17 +175,18 @@ void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
 }
 
 void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
-  int size = sampledTrades.size();
-  if (size == 0) {
+  int n = sampledTrades.size();
+  if (n == 0) {
     throw std::logic_error("sampledTrades is empty");
   }
-  outcomes.resize(size);
+  outcomes.resize(n);
 
-  auto C = std::thread::hardware_concurrency();
+  unsigned hw = std::thread::hardware_concurrency();
+  auto num_threads = std::min(hw != 0 ? hw : 1, static_cast<unsigned>(n));
   std::vector<std::thread> threads;
-  for (unsigned t = 0; t < C; ++t) {
+  for (unsigned t = 0; t < num_threads; ++t) {
     threads.emplace_back([&, t] {
-      for (size_t i = t; i < size; i += C) {
+      for (size_t i = t; i < n; i += num_threads) {
         computePathStat(i, startingBalance);
       }
     });
@@ -186,3 +197,4 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
 }
 
 /*-----------------------Sample Trades Regime-----------------------------*/
+void Monte

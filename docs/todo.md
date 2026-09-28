@@ -9,14 +9,9 @@
   - [x] Regime classifcation
   - [ ] sampling
   - [ ] compute statics
-- [ ] ensure don't create more threads than needed in sampleTradeParallel
+- [x] ensure don't create more threads than needed in concurrent functions
+  - [x] and handle case when std::hardware_concurrency() returns 0
 
-```c
-unsigned long const min_per_thread = 25;
-unsigned long const max_threads = (length + min_per_thread - 1) / min_per_thread;
-unsigned long const hardware_threads = std::thread::hardware_concurrency();
-unsigned long const num_threads = std::min(hardware_threads != 0 ? hardware_threads : 2, max_threads);
-```
 
 - [x] Backtester
   - [x] MVP
