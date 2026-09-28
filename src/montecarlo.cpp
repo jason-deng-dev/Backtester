@@ -9,6 +9,8 @@
 #include <thread>
 #include <utility>
 
+/*-----------------------Regime Classificaiton-----------------------------*/
+
 void MonteCarlo::classifyRegime(const State &state, double volPercentile,
                                 double calmPercentile, int returnLookback,
                                 int volLookback) {
@@ -72,13 +74,13 @@ void MonteCarlo::createTransitionMatrix() {
   int totalVol = transitionCountMap[RegimeSwitch::VolToVol] + transitionCountMap[RegimeSwitch::VolToCalm];
   transitionMatrix[RegimeSwitch::CalmToCalm] = transitionCountMap[RegimeSwitch::CalmToCalm] / double(totalCalm);
   transitionMatrix[RegimeSwitch::CalmToVol] = transitionCountMap[RegimeSwitch::CalmToVol] / double(totalCalm);
-  transitionMatrix[RegimeSwitch::VolToCalm] = transitionCountMap[RegimeSwitch::VolToCalm] / double(totalCalm);
-  transitionMatrix[RegimeSwitch::VolToVol] = transitionCountMap[RegimeSwitch::VolToVol] / double(totalCalm);
+  transitionMatrix[RegimeSwitch::VolToCalm] = transitionCountMap[RegimeSwitch::VolToCalm] / double(totalVol);
+  transitionMatrix[RegimeSwitch::VolToVol] = transitionCountMap[RegimeSwitch::VolToVol] / double(totalVol);
 }
 
 /*-----------------------Sample Trades-----------------------------*/
 
-void MonteCarlo::sampleTrade(int seed, int i, const Analytics &analytics) {
+void MonteCarlo::sampleTrades(int seed, int i, const Analytics &analytics) {
   // keep sampling until fill until reach
   std::vector<SampledTrade> tradePath;
 
@@ -107,7 +109,7 @@ void MonteCarlo::sampleTradesSerial(int n, int seed,
   }
   sampledTrades.resize(n);
   for (int i = 0; i < n; ++i) {
-    sampleTrade(seed, i, analytics);
+    sampleTrades(seed, i, analytics);
   }
 }
 
@@ -122,7 +124,7 @@ void MonteCarlo::sampleTradesParallel(int n, int seed,
   for (unsigned t = 0; t < C; ++t) {
     threads.emplace_back([&, t] {
       for (size_t i = t; i < n; i += C) {
-        sampleTrade(seed, i, analytics);
+        sampleTrades(seed, i, analytics);
       }
     });
   }
@@ -182,3 +184,5 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
     th.join();
   }
 }
+
+/*-----------------------Sample Trades Regime-----------------------------*/
