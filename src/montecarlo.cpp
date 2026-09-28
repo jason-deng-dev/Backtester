@@ -48,23 +48,20 @@ void MonteCarlo::classifyRegime(const State &state, double volPercentile,
     if (!currVol || !currHigh || !currLow) {
       regimes.push_back(Regime::WARMUP);
     } else {
-      if (!hasLabeled) {
-        hasLabeled = true;
-        
-      }
-      else if (currState == Regime::CALM && *currVol > *currHigh) {
-        transitionCountMap[RegimeSwitch::CalmToVol]++;
+
+      if (currState == Regime::CALM && *currVol > *currHigh ) {
+        if (hasLabeled) transitionCountMap[RegimeSwitch::CalmToVol]++;
         currState = Regime::VOLATILE;
       } else if (currState == Regime::VOLATILE && *currVol < *currLow) {
         transitionCountMap[RegimeSwitch::VolToCalm]++;
         currState = Regime::CALM;
       } else {
-        if (currState == Regime::CALM)
+        if (currState == Regime::CALM && hasLabeled) 
           transitionCountMap[RegimeSwitch::CalmToCalm]++;
         if (currState == Regime::VOLATILE)
           transitionCountMap[RegimeSwitch::VolToVol]++;
       }
-
+      hasLabeled = true;
       regimes.push_back(currState);
     }
   }
