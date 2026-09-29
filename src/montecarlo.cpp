@@ -257,16 +257,27 @@ void MonteCarlo::setupRegime(int n, const Analytics &analytics,
 }
 
 /*-----------------------Compute Path Stats-----------------------------*/
+// shared by the serial and parallel entry points; must run before any thread
+// is spawned, since a throw from inside a worker terminates the process
+void MonteCarlo::validateStartingState(double startingBalance) const {
+  if (startingBalance <= 0.0) {
+    throw std::invalid_argument("startingBalance must be positive");
+  }
+  if (sampledTrades.empty()) {
+    throw std::logic_error("sampledTrades is empty");
+  }
+  if (std::any_of(sampledTrades.begin(), sampledTrades.end(),
+                  [](const auto &path) { return path.empty(); })) {
+    throw std::logic_error("empty sampled trade path");
+  }
+}
+
 void MonteCarlo::computePathStat(int n, double startingBalance) {
   double balance = startingBalance;
   double maxDrawDown{0}; // Drawdown_t = (Peak_t-V_t)/Peak_t
   double peak{balance};
 
   auto &tradePath = sampledTrades[n];
-
-  if (tradePath.empty()) {
-    throw std::logic_error("empty sampled trade path");
-  }
 
   double sumReturns{0};
 
@@ -281,12 +292,10 @@ void MonteCarlo::computePathStat(int n, double startingBalance) {
 }
 
 void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
-  int size = sampledTrades.size();
-  if (size == 0) {
-    throw std::logic_error("sampledTrades is empty");
-  }
+  validateStartingState(startingBalance);
 
   startingBalance_ = startingBalance;
+  const std::size_t size = sampledTrades.size();
   outcomes.resize(size);
 
   for (std::size_t i = 0; i < size; ++i) {
@@ -295,12 +304,10 @@ void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
 }
 
 void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
-  int n = sampledTrades.size();
-  if (n == 0) {
-    throw std::logic_error("sampledTrades is empty");
-  }
+  validateStartingState(startingBalance);
 
   startingBalance_ = startingBalance;
+  const std::size_t n = sampledTrades.size();
   outcomes.resize(n);
 
   unsigned hw = std::thread::hardware_concurrency();

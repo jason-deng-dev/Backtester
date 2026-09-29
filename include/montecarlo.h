@@ -67,6 +67,9 @@ private:
                    std::vector<PositionRecord> &calmPositions,
                    std::vector<PositionRecord> &volPositions);
 
+  // rejects the starting conditions every path-stat entry point needs
+  void validateStartingState(double startingBalance) const;
+
 public:
   /*-----------------------Sample Trades-----------------------------*/
   void sampleTrade(int i, int seed,
