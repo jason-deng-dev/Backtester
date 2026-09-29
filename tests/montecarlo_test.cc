@@ -499,7 +499,7 @@ using sampling::classifyFixture;
 
 TEST(MonteCarloTest, computeAllPathStatRequiresSampledTrades) {
   MonteCarlo mc{};
-  EXPECT_THROW(mc.computeAllPathStatSerial(1000.0), std::logic_error);
+  EXPECT_THROW(mc.computeAllPathStatSerial(), std::logic_error);
 }
 
 TEST(MonteCarloTest, computeAllPathStatReplaysEachPath) {
@@ -509,9 +509,8 @@ TEST(MonteCarloTest, computeAllPathStatReplaysEachPath) {
   classifyFixture(mc, f);
 
   constexpr int kPaths = 32;
-  constexpr double kStart = 10000.0;
   mc.sampleTradesRegimeSerial(kPaths, 3, f.an);
-  mc.computeAllPathStatSerial(kStart);
+  mc.computeAllPathStatSerial();
 
   const auto &paths = mc.getSampledTrades();
   const auto &out = mc.getOutcomes();
@@ -520,9 +519,10 @@ TEST(MonteCarloTest, computeAllPathStatReplaysEachPath) {
   for (std::size_t i = 0; i < paths.size(); ++i) {
     ASSERT_FALSE(paths[i].empty()) << i;
 
-    double balance = kStart;
-    double product = kStart; // independent formulation of the same quantity
-    double peak = kStart;    // local only, kept to replay the drawdown
+    // paths are normalized: balance starts at 1.0 and ends as a multiple
+    double balance = 1.0;
+    double product = 1.0; // independent formulation of the same quantity
+    double peak = 1.0;    // local only, kept to replay the drawdown
     double maxDrawDown = 0.0;
     double sumReturns = 0.0;
     for (const auto &t : paths[i]) {
@@ -544,38 +544,20 @@ TEST(MonteCarloTest, computeAllPathStatReplaysEachPath) {
   }
 }
 
-TEST(MonteCarloTest, computeAllPathStatRejectsNonPositiveStartingBalance) {
-  Fixture f;
-  ASSERT_TRUE(f.build());
-  MonteCarlo mc{};
-  classifyFixture(mc, f);
-  mc.sampleTradesRegimeSerial(8, 3, f.an);
-
-  // a non-positive seed balance makes peak 0, so every drawdown ratio is 0/0
-  EXPECT_THROW(mc.computeAllPathStatSerial(0.0), std::invalid_argument);
-  EXPECT_THROW(mc.computeAllPathStatSerial(-1.0), std::invalid_argument);
-  EXPECT_THROW(mc.computeAllPathStatParallel(0.0), std::invalid_argument);
-  EXPECT_THROW(mc.computeAllPathStatParallel(-1.0), std::invalid_argument);
-
-  // rejected before any work: no outcomes written
-  EXPECT_TRUE(mc.getOutcomes().empty());
-}
-
 TEST(MonteCarloTest, computeAllPathStatParallelMatchesSerial) {
   Fixture f;
   ASSERT_TRUE(f.build());
   constexpr int kPaths = 64;
-  constexpr double kStart = 10000.0;
 
   MonteCarlo serial{};
   classifyFixture(serial, f);
   serial.sampleTradesRegimeSerial(kPaths, 5, f.an);
-  serial.computeAllPathStatSerial(kStart);
+  serial.computeAllPathStatSerial();
 
   MonteCarlo parallel{};
   classifyFixture(parallel, f);
   parallel.sampleTradesRegimeSerial(kPaths, 5, f.an);
-  parallel.computeAllPathStatParallel(kStart);
+  parallel.computeAllPathStatParallel();
 
   const auto &a = serial.getOutcomes();
   const auto &b = parallel.getOutcomes();
@@ -588,3 +570,106 @@ TEST(MonteCarloTest, computeAllPathStatParallelMatchesSerial) {
 }
 
 } // namespace pathStats
+
+namespace aggregateStats {
+
+TEST(MonteCarloTest, computeAggregateStatsRejectsEmptyOutcomes) {
+  MonteCarlo mc{};
+  EXPECT_THROW(mc.computeAggregateStats({}), std::logic_error);
+}
+
+// threshold counts are inclusive: a path whose max drawdown is exactly 0.20
+// counts as having reached 0.20
+TEST(MonteCarloTest, aggregateDrawdownProbabilityCountsAtThreshold) {
+  MonteCarlo mc{};
+
+  const std::vector<double> drawdowns{0.0,  0.05, 0.1,  0.15, 0.2,
+                                      0.25, 0.35, 0.55, 1.0,  0.09};
+  std::vector<SampleOutcome> outcomes;
+  for (const double dd : drawdowns) {
+    outcomes.push_back({2.0, dd, 0.0});
+  }
+
+  mc.computeAggregateStats(outcomes);
+  const auto &s = mc.getAggregateStats();
+
+  // 7 of 10 reach 0.1 (0.1, 0.15, 0.2, 0.25, 0.35, 0.55, 1.0)
+  ASSERT_EQ(s.propDrawdownExceed.size(), 4u);
+  EXPECT_DOUBLE_EQ(s.propDrawdownExceed.at(0.1), 0.7);
+  EXPECT_DOUBLE_EQ(s.propDrawdownExceed.at(0.2), 0.5);
+  EXPECT_DOUBLE_EQ(s.propDrawdownExceed.at(0.3), 0.3);
+  EXPECT_DOUBLE_EQ(s.propDrawdownExceed.at(0.5), 0.2);
+  EXPECT_DOUBLE_EQ(s.probRuin, 0.1);
+}
+
+// a terminal multiple of exactly 1.0 broke even, so only a value strictly
+// below 1.0 counts as losing money
+TEST(MonteCarloTest, aggregateProbLoseMoneyUsesStrictThresholdBelowOne) {
+  MonteCarlo mc{};
+
+  std::vector<SampleOutcome> outcomes{{1.0, 0.0, 0.0}, {0.99, 0.0, 0.0}};
+
+  mc.computeAggregateStats(outcomes);
+  EXPECT_DOUBLE_EQ(mc.getAggregateStats().probLoseMoney, 0.5);
+}
+
+// each distribution must read the field its projection names, not maxDrawdown
+TEST(MonteCarloTest, aggregateDistributionsHonorTheirProjection) {
+  MonteCarlo mc{};
+
+  std::vector<SampleOutcome> outcomes;
+  for (int i = 1; i <= 40; ++i) {
+    outcomes.push_back({double(i), 0.0, double(i) / 1000.0});
+  }
+
+  mc.computeAggregateStats(outcomes);
+  const auto &s = mc.getAggregateStats();
+
+  // all drawdowns are 0.0, so a projection bug makes every distribution this
+  ASSERT_TRUE(s.maxDrawdownDistribution.p50.has_value());
+  EXPECT_DOUBLE_EQ(*s.maxDrawdownDistribution.p50, 0.0);
+
+  // values 1..40, percentile k = ceil(p * n) -> v[k - 1]
+  ASSERT_TRUE(s.balanceDistribution.p5.has_value());
+  ASSERT_TRUE(s.balanceDistribution.p50.has_value());
+  ASSERT_TRUE(s.balanceDistribution.p95.has_value());
+  EXPECT_DOUBLE_EQ(*s.balanceDistribution.p5, 2.0);
+  EXPECT_DOUBLE_EQ(*s.balanceDistribution.p50, 20.0);
+  EXPECT_DOUBLE_EQ(*s.balanceDistribution.p95, 38.0);
+
+  ASSERT_TRUE(s.meanTradeReturnDistribution.p50.has_value());
+  ASSERT_TRUE(s.meanTradeReturnDistribution.p95.has_value());
+  EXPECT_DOUBLE_EQ(*s.meanTradeReturnDistribution.p50, 0.02);
+  EXPECT_DOUBLE_EQ(*s.meanTradeReturnDistribution.p95, 0.038);
+}
+
+// mean and std come from the projected field, checked against an independent
+// two-pass computation of the same quantities
+TEST(MonteCarloTest, aggregateDistributionMeanAndStdMatchTwoPass) {
+  MonteCarlo mc{};
+
+  std::vector<SampleOutcome> outcomes;
+  for (int i = 1; i <= 40; ++i) {
+    outcomes.push_back({double(i), 0.0, 0.0});
+  }
+
+  mc.computeAggregateStats(outcomes);
+  const auto &dist = mc.getAggregateStats().balanceDistribution;
+
+  double mean = 0.0;
+  for (int i = 1; i <= 40; ++i) {
+    mean += double(i);
+  }
+  mean /= 40.0;
+
+  double variance = 0.0;
+  for (int i = 1; i <= 40; ++i) {
+    variance += (double(i) - mean) * (double(i) - mean);
+  }
+  variance /= 39.0; // sample variance, n - 1
+
+  EXPECT_DOUBLE_EQ(dist.mean, mean);
+  EXPECT_NEAR(dist.std, std::sqrt(variance), 1e-9);
+}
+
+} // namespace aggregateStats
