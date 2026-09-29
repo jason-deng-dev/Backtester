@@ -261,10 +261,7 @@ void MonteCarlo::setupRegime(int n, const Analytics &analytics,
 /*-----------------------Compute Path Stats-----------------------------*/
 // shared by the serial and parallel entry points; must run before any thread
 // is spawned, since a throw from inside a worker terminates the process
-void MonteCarlo::validateStartingState(double startingBalance) const {
-  if (startingBalance <= 0.0) {
-    throw std::invalid_argument("startingBalance must be positive");
-  }
+void MonteCarlo::validateStartingState() const {
   if (sampledTrades.empty()) {
     throw std::logic_error("sampledTrades is empty");
   }
@@ -274,8 +271,8 @@ void MonteCarlo::validateStartingState(double startingBalance) const {
   }
 }
 
-void MonteCarlo::computePathStat(int n, double startingBalance) {
-  double balance = startingBalance;
+void MonteCarlo::computePathStat(int n) {
+  double balance = 1.0;
   double maxDrawDown{0}; // Drawdown_t = (Peak_t-V_t)/Peak_t
   double peak{balance};
 
@@ -293,22 +290,18 @@ void MonteCarlo::computePathStat(int n, double startingBalance) {
   outcomes[n] = {balance, maxDrawDown, sumReturns / tradePath.size()};
 }
 
-void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
-  validateStartingState(startingBalance);
-
-  startingBalance_ = startingBalance;
+void MonteCarlo::computeAllPathStatSerial() {
+  validateStartingState();
   const std::size_t size = sampledTrades.size();
   outcomes.resize(size);
 
   for (std::size_t i = 0; i < size; ++i) {
-    computePathStat(i, startingBalance);
+    computePathStat(i);
   }
 }
 
-void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
-  validateStartingState(startingBalance);
-
-  startingBalance_ = startingBalance;
+void MonteCarlo::computeAllPathStatParallel() {
+  validateStartingState();
   const std::size_t n = sampledTrades.size();
   outcomes.resize(n);
 
@@ -320,7 +313,7 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
     threads.emplace_back([&, t] {
       for (size_t i = t; i < n;
            i += num_threads) { // evenly distribute work amoung them
-        computePathStat(i, startingBalance);
+        computePathStat(i);
       }
     });
   }
@@ -329,11 +322,9 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
   }
 }
 
-// allow passing in std::vector<SampleOutcome>* outcomes for testing
 void MonteCarlo::computeAggregateStats(
     const std::vector<SampleOutcome> &outcomesToCompute) {
-  int n = outcomesToCompute.size();
-  double total = n;
+  double total = outcomesToCompute.size();
   if (total == 0) {
     throw std::logic_error("outcomes is empty");
   }
@@ -341,9 +332,9 @@ void MonteCarlo::computeAggregateStats(
   int loseMoney = 0, MDD10 = 0, MDD20 = 0, MDD30 = 0, MDD50 = 0, ruin = 0;
 
   for (const auto &sampleOutcome : outcomesToCompute) {
-    int balance = sampleOutcome.balance;
-    int mdd = sampleOutcome.maxDrawdown;
-    if (balance < startingBalance_) ++loseMoney;
+    double balance = sampleOutcome.balance;
+    double mdd = sampleOutcome.maxDrawdown;
+    if (balance < 1.0) ++loseMoney;
     if (mdd >= 0.1) ++MDD10;
     if (mdd >= 0.2) ++MDD20;
     if (mdd >= 0.3) ++MDD30;
@@ -371,7 +362,7 @@ void MonteCarlo::computeAggregateStats(
   fillDistribution(
       outcomesToCompute,
       [](const SampleOutcome &x) { return x.meanTradeReturn; },
-      aggregateStats.meanTradeReturDistribution);
+      aggregateStats.meanTradeReturnDistribution);
 }
 
 void MonteCarlo::reportAggregateStats() const {}
