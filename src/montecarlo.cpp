@@ -261,7 +261,7 @@ void MonteCarlo::computePathStat(int n, double startingBalance) {
   double balance = startingBalance;
   double maxDrawDown{0}; // Drawdown_t = (Peak_t-V_t)/Peak_t
   double peak{balance};
-  double trough{balance};
+
 
   auto &tradePath = sampledTrades[n];
 
@@ -274,12 +274,11 @@ void MonteCarlo::computePathStat(int n, double startingBalance) {
   for (auto &trade : tradePath) {
     balance += balance * trade.fractionalReturn;
     peak = std::max(peak, balance);
-    trough = std::min(trough, balance);
     maxDrawDown = std::max(maxDrawDown, (peak - balance) / peak);
     sumReturns += trade.fractionalReturn;
   }
 
-  outcomes[n] = {peak, trough, balance, maxDrawDown,
+  outcomes[n] = { balance, maxDrawDown,
                  sumReturns / tradePath.size()};
 }
 
@@ -322,5 +321,5 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
 void MonteCarlo::reportAggregateStats() const {
   // ending account distributions
   // drawdown distributions
-  // avg peak/trough
+  // EV per trade distribution
 }

@@ -522,30 +522,25 @@ TEST(MonteCarloTest, computeAllPathStatReplaysEachPath) {
 
     double balance = kStart;
     double product = kStart; // independent formulation of the same quantity
-    double peak = kStart;
-    double trough = kStart;
+    double peak = kStart;    // local only, kept to replay the drawdown
     double maxDrawDown = 0.0;
+    double sumReturns = 0.0;
     for (const auto &t : paths[i]) {
       balance += balance * t.fractionalReturn;
       product *= 1.0 + t.fractionalReturn;
       peak = std::max(peak, balance);
-      trough = std::min(trough, balance);
       maxDrawDown = std::max(maxDrawDown, (peak - balance) / peak);
+      sumReturns += t.fractionalReturn;
     }
 
     EXPECT_DOUBLE_EQ(out[i].balance, balance) << i;
     EXPECT_NEAR(out[i].balance, product, 1e-9) << i;
-    EXPECT_DOUBLE_EQ(out[i].peak, peak) << i;
-    EXPECT_DOUBLE_EQ(out[i].trough, trough) << i;
     EXPECT_DOUBLE_EQ(out[i].maxDrawdown, maxDrawDown) << i;
+    EXPECT_DOUBLE_EQ(out[i].meanTradeReturn, sumReturns / paths[i].size()) << i;
 
     // invariants that hold regardless of the drawn path
-    EXPECT_GE(out[i].peak, kStart) << i;
-    EXPECT_LE(out[i].trough, kStart) << i;
     EXPECT_GE(out[i].maxDrawdown, 0.0) << i;
     EXPECT_LT(out[i].maxDrawdown, 1.0) << i;
-    EXPECT_LE(out[i].trough, out[i].balance) << i;
-    EXPECT_GE(out[i].peak, out[i].balance) << i;
   }
 }
 

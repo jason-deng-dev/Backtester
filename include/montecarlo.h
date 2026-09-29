@@ -20,8 +20,6 @@ struct SampledTrade {
 };
 
 struct SampleOutcome {
-  double peak;
-  double trough;
   double balance;
   double maxDrawdown;
   double meanTradeReturn;
