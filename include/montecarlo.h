@@ -24,6 +24,7 @@ struct sampleOutcome {
   double trough;
   double balance;
   double maxDrawdown;
+  double meanTradeReturn;
 };
 
 struct RegimeData {
@@ -83,11 +84,14 @@ public:
   void sampleTradesRegimeParallel(int n, int seed, const Analytics &analytics);
   void sampleTradesRegimeGPU(int n, int seed, const Analytics &analytics);
 
-  /*-----------------------Compute Path Stats-----------------------------*/
+  /*-----------------------Compute Stats-----------------------------*/
   void computePathStat(int n, double startingBalance);
   void computeAllPathStatSerial(double startingBalance);
   void computeAllPathStatParallel(double startingBalance);
   void computeAllPathStatGPU(double startingBalance);
+
+  void reportAggregateStats() const;
+
 
   /*-----------------------Regime classification-----------------------------*/
   void classifyRegime(const State &state, double volPercentile = 0.75,

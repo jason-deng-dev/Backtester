@@ -192,8 +192,8 @@ use transition matrix to select next regime
                          ? volPositions[volDist(gen)]
                          : calmPositions[calmDist(gen)];
 
-    tradePath.push_back({position.pnl / std::abs(position.entryNotional),
-                         currRegime});
+    tradePath.push_back(
+        {position.pnl / std::abs(position.entryNotional), currRegime});
 
     if (currRegime == Regime::VOLATILE && !volToVolDist(gen)) {
       currRegime = Regime::CALM;
@@ -266,14 +266,18 @@ void MonteCarlo::computePathStat(int n, double startingBalance) {
 
   auto &tradePath = sampledTrades[n];
 
+  double sumReturns{0};
+
   for (auto &trade : tradePath) {
     balance += balance * trade.fractionalReturn;
     peak = std::max(peak, balance);
     trough = std::min(trough, balance);
     maxDrawDown = std::max(maxDrawDown, (peak - balance) / peak);
+    sumReturns += trade.fractionalReturn;
   }
 
-  outcomes[n] = {peak, trough, balance, maxDrawDown};
+  outcomes[n] = {peak, trough, balance, maxDrawDown,
+                 sumReturns / tradePath.size()};
 }
 
 void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
@@ -310,4 +314,10 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
   for (auto &th : threads) {
     th.join();
   }
+}
+
+void MonteCarlo::reportAggregateStats() const {
+  // ending account distributions
+  // drawdown distributions
+  // avg peak/trough
 }
