@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 #include <optional>
 #include <random>
 #include <stdexcept>
@@ -55,6 +56,9 @@ struct AggregateStats {
   double probLoseMoney{};
   double probRuin{}; // maxDrawdown exceed 1
   std::unordered_map<double, double> propDrawdownExceed;
+  // paths aggregated, which is not necessarily outcomes.size(): the caller
+  // may aggregate a vector it built itself
+  std::size_t paths{};
 };
 
 struct RegimeData {
@@ -116,7 +120,7 @@ public:
   void computeAllPathStatGPU();
 
   void computeAggregateStats(const std::vector<SampleOutcome> &outcomesToCompute);
-  void reportAggregateStats() const;
+  void reportAggregateStats(std::ostream &os = std::cout) const;
   const AggregateStats &getAggregateStats() const { return aggregateStats; }
 
   /*-----------------------Regime classification-----------------------------*/

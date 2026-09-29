@@ -1,5 +1,6 @@
 #include "montecarlo.h"
 #include "analytics.h"
+#include "reportformat.h"
 #include "rollingwindow.h"
 #include <algorithm>
 #include <cstddef>
@@ -8,8 +9,10 @@
 #include <optional>
 #include <random>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 /*-----------------------Regime Classificaiton-----------------------------*/
 
@@ -328,6 +331,7 @@ void MonteCarlo::computeAggregateStats(
   if (total == 0) {
     throw std::logic_error("outcomes is empty");
   }
+  aggregateStats.paths = outcomesToCompute.size();
 
   int loseMoney = 0, MDD10 = 0, MDD20 = 0, MDD30 = 0, MDD50 = 0, ruin = 0;
 
@@ -365,4 +369,86 @@ void MonteCarlo::computeAggregateStats(
       aggregateStats.meanTradeReturnDistribution);
 }
 
-void MonteCarlo::reportAggregateStats() const {}
+/*-----------------------Report-----------------------------*/
+namespace {
+
+// same 57-column banner width and "-- Label ----" rule as Analytics::report
+constexpr int kReportWidth = 57;
+
+void section(std::ostream &os, const std::string &label) {
+  os << "\n-- " << label << ' ';
+  for (std::size_t i = 4 + label.size(); i < std::size_t(kReportWidth); ++i) {
+    os << '-';
+  }
+  os << '\n';
+}
+
+// one metric's distribution: mean and std, then whatever percentiles the
+// sample was large enough to resolve
+// asPercent false prints a ratio (terminal multiple), true prints a percentage
+void reportDistribution(std::ostream &os, const Distribution &d,
+                        bool asPercent, bool showSign) {
+  const auto fmt = [&](double v) {
+    return asPercent ? reportfmt::pct(v, showSign) : reportfmt::num(v);
+  };
+  const auto fmtOpt = [&](const std::optional<double> &v) {
+    return v ? fmt(*v) : std::string("n/a");
+  };
+
+  reportfmt::line(os, "mean", fmt(d.mean));
+  // no sign on std: a spread is a magnitude
+  reportfmt::line(os, "std",
+                  asPercent ? reportfmt::pct(d.std) : reportfmt::num(d.std));
+  reportfmt::line(os, "p5", fmtOpt(d.p5));
+  reportfmt::line(os, "p25", fmtOpt(d.p25));
+  reportfmt::line(os, "p50", fmtOpt(d.p50));
+  reportfmt::line(os, "p75", fmtOpt(d.p75));
+  reportfmt::line(os, "p95", fmtOpt(d.p95));
+}
+
+} // namespace
+
+void MonteCarlo::reportAggregateStats(std::ostream &os) const {
+  const AggregateStats &s = aggregateStats;
+
+  os << "=================== MONTE CARLO REPORT ==================\n";
+  if (s.paths == 0) {
+    os << "\n  no outcomes: call computeAggregateStats first\n";
+    os << "=========================================================\n";
+    return;
+  }
+
+  reportfmt::line(os, "paths", std::to_string(s.paths));
+  reportfmt::line(os, "balance basis",
+                  "1.00 (every figure below is a multiple of it)");
+
+  section(os, "Terminal multiple");
+  reportDistribution(os, s.balanceDistribution, false, false);
+  reportfmt::line(os, "P(below 1.00x)", reportfmt::pct(s.probLoseMoney));
+
+  section(os, "Max drawdown (fraction of running peak)");
+  reportDistribution(os, s.maxDrawdownDistribution, true, false);
+
+  // unordered_map, so sort the thresholds: the rows must read ascending
+  std::vector<double> thresholds;
+  thresholds.reserve(s.propDrawdownExceed.size());
+  for (const auto &entry : s.propDrawdownExceed) {
+    thresholds.push_back(entry.first);
+  }
+  std::sort(thresholds.begin(), thresholds.end());
+  for (const double t : thresholds) {
+    reportfmt::line(os, "P(reached " + reportfmt::pct(t) + ")",
+                    reportfmt::pct(s.propDrawdownExceed.at(t)));
+  }
+  reportfmt::line(os, "P(ruin)", reportfmt::pct(s.probRuin));
+
+  section(os, "Mean trade return per path");
+  reportDistribution(os, s.meanTradeReturnDistribution, true, true);
+
+  os << "\n"
+        "  Percentiles need a minimum number of paths: p5, p25 and p50 need 4,\n"
+        "  p75 needs 8, p95 needs 40. Below that the row prints n/a.\n"
+        "  P(ruin) counts paths whose peak-to-trough drawdown reached 100%,\n"
+        "  which is the same event as the balance touching zero.\n";
+  os << "=========================================================\n";
+}

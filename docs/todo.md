@@ -17,7 +17,7 @@
 - [x] refactor reused code in sampleTradeRegime... into private helper function
 - [x] compute aggregate stats
 - [x] refactor to remove startingBalance from computePathStat, and instead use 1.0  
-- [ ] report aggregate stats
+- [x] report aggregate stats
 
 
 

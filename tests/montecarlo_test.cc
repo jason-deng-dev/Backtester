@@ -11,6 +11,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -670,6 +671,56 @@ TEST(MonteCarloTest, aggregateDistributionMeanAndStdMatchTwoPass) {
 
   EXPECT_DOUBLE_EQ(dist.mean, mean);
   EXPECT_NEAR(dist.std, std::sqrt(variance), 1e-9);
+}
+
+// report text is the only readout of the private aggregates
+TEST(MonteCarloTest, reportAggregateStatsPrintsEverySection) {
+  MonteCarlo mc{};
+
+  // 40 paths: enough for every percentile including p95
+  std::vector<SampleOutcome> outcomes;
+  for (int i = 1; i <= 40; ++i) {
+    outcomes.push_back({1.0 + double(i) / 100.0, double(i) / 1000.0, 0.001});
+  }
+  mc.computeAggregateStats(outcomes);
+
+  std::ostringstream os;
+  mc.reportAggregateStats(os);
+  const std::string r = os.str();
+
+  EXPECT_NE(r.find("MONTE CARLO REPORT"), std::string::npos);
+  EXPECT_NE(r.find("Terminal multiple"), std::string::npos);
+  EXPECT_NE(r.find("Max drawdown (fraction of running peak)"),
+            std::string::npos);
+  EXPECT_NE(r.find("Mean trade return per path"), std::string::npos);
+  EXPECT_NE(r.find("40"), std::string::npos); // path count
+  EXPECT_NE(r.find("P(reached 10.00%)"), std::string::npos);
+  EXPECT_NE(r.find("P(ruin)"), std::string::npos);
+
+  // balances 1.01..1.40 -> p95 index ceil(0.95 * 40) - 1 = 37 -> 1.38
+  EXPECT_NE(r.find("1.38"), std::string::npos);
+
+  // the threshold rows must read ascending even though the map is unordered
+  const std::size_t t10 = r.find("reached 10.00%");
+  const std::size_t t20 = r.find("reached 20.00%");
+  const std::size_t t30 = r.find("reached 30.00%");
+  const std::size_t t50 = r.find("reached 50.00%");
+  ASSERT_NE(t10, std::string::npos);
+  ASSERT_NE(t20, std::string::npos);
+  ASSERT_NE(t30, std::string::npos);
+  ASSERT_NE(t50, std::string::npos);
+  EXPECT_LT(t10, t20);
+  EXPECT_LT(t20, t30);
+  EXPECT_LT(t30, t50);
+}
+
+// a report with nothing aggregated must say so rather than print zeroes
+TEST(MonteCarloTest, reportAggregateStatsBeforeComputeSaysSo) {
+  MonteCarlo mc{};
+  std::ostringstream os;
+  mc.reportAggregateStats(os);
+  EXPECT_NE(os.str().find("call computeAggregateStats first"),
+            std::string::npos);
 }
 
 } // namespace aggregateStats
