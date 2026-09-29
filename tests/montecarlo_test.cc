@@ -544,4 +544,47 @@ TEST(MonteCarloTest, computeAllPathStatReplaysEachPath) {
   }
 }
 
+TEST(MonteCarloTest, computeAllPathStatRejectsNonPositiveStartingBalance) {
+  Fixture f;
+  ASSERT_TRUE(f.build());
+  MonteCarlo mc{};
+  classifyFixture(mc, f);
+  mc.sampleTradesRegimeSerial(8, 3, f.an);
+
+  // a non-positive seed balance makes peak 0, so every drawdown ratio is 0/0
+  EXPECT_THROW(mc.computeAllPathStatSerial(0.0), std::invalid_argument);
+  EXPECT_THROW(mc.computeAllPathStatSerial(-1.0), std::invalid_argument);
+  EXPECT_THROW(mc.computeAllPathStatParallel(0.0), std::invalid_argument);
+  EXPECT_THROW(mc.computeAllPathStatParallel(-1.0), std::invalid_argument);
+
+  // rejected before any work: no outcomes written
+  EXPECT_TRUE(mc.getOutcomes().empty());
+}
+
+TEST(MonteCarloTest, computeAllPathStatParallelMatchesSerial) {
+  Fixture f;
+  ASSERT_TRUE(f.build());
+  constexpr int kPaths = 64;
+  constexpr double kStart = 10000.0;
+
+  MonteCarlo serial{};
+  classifyFixture(serial, f);
+  serial.sampleTradesRegimeSerial(kPaths, 5, f.an);
+  serial.computeAllPathStatSerial(kStart);
+
+  MonteCarlo parallel{};
+  classifyFixture(parallel, f);
+  parallel.sampleTradesRegimeSerial(kPaths, 5, f.an);
+  parallel.computeAllPathStatParallel(kStart);
+
+  const auto &a = serial.getOutcomes();
+  const auto &b = parallel.getOutcomes();
+  ASSERT_EQ(a.size(), b.size());
+  for (std::size_t i = 0; i < a.size(); ++i) {
+    EXPECT_DOUBLE_EQ(a[i].balance, b[i].balance) << i;
+    EXPECT_DOUBLE_EQ(a[i].maxDrawdown, b[i].maxDrawdown) << i;
+    EXPECT_DOUBLE_EQ(a[i].meanTradeReturn, b[i].meanTradeReturn) << i;
+  }
+}
+
 } // namespace pathStats
