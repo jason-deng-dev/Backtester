@@ -262,7 +262,6 @@ void MonteCarlo::computePathStat(int n, double startingBalance) {
   double maxDrawDown{0}; // Drawdown_t = (Peak_t-V_t)/Peak_t
   double peak{balance};
 
-
   auto &tradePath = sampledTrades[n];
 
   if (tradePath.empty()) {
@@ -278,8 +277,7 @@ void MonteCarlo::computePathStat(int n, double startingBalance) {
     sumReturns += trade.fractionalReturn;
   }
 
-  outcomes[n] = { balance, maxDrawDown,
-                 sumReturns / tradePath.size()};
+  outcomes[n] = {balance, maxDrawDown, sumReturns / tradePath.size()};
 }
 
 void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
@@ -287,6 +285,8 @@ void MonteCarlo::computeAllPathStatSerial(double startingBalance) {
   if (size == 0) {
     throw std::logic_error("sampledTrades is empty");
   }
+
+  startingBalance_ = startingBalance;
   outcomes.resize(size);
 
   for (std::size_t i = 0; i < size; ++i) {
@@ -299,6 +299,8 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
   if (n == 0) {
     throw std::logic_error("sampledTrades is empty");
   }
+
+  startingBalance_ = startingBalance;
   outcomes.resize(n);
 
   unsigned hw = std::thread::hardware_concurrency();
@@ -319,7 +321,9 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
 }
 
 void MonteCarlo::reportAggregateStats() const {
-  // ending account distributions
-  // drawdown distributions
-  // EV per trade distribution
+  int loseMoney = 0, MDD10 = 0, MDD20 = 0, MDD30 = 0, MDD50 = 0, ruin = 0;
+
+  for (auto &sampleOutcome : outcomes) {
+    if (sampleOutcome.balance)
+  }
 }

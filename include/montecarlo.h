@@ -115,6 +115,7 @@ public:
   const std::vector<SampleOutcome> &getOutcomes() const { return outcomes; }
 
 private:
+  double startingBalance_  =0;
   RegimeData regimeData{};
   std::vector<SampleOutcome> outcomes;
   std::vector<std::vector<SampledTrade>> sampledTrades;
