@@ -19,7 +19,7 @@ struct SampledTrade {
   Regime regime;
 };
 
-struct sampleOutcome {
+struct SampleOutcome {
   double peak;
   double trough;
   double balance;
@@ -114,10 +114,10 @@ public:
     return sampledTrades;
   }
 
-  const std::vector<sampleOutcome> &getOutcomes() const { return outcomes; }
+  const std::vector<SampleOutcome> &getOutcomes() const { return outcomes; }
 
 private:
   RegimeData regimeData{};
-  std::vector<sampleOutcome> outcomes;
+  std::vector<SampleOutcome> outcomes;
   std::vector<std::vector<SampledTrade>> sampledTrades;
 };

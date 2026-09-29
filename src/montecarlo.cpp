@@ -259,12 +259,15 @@ void MonteCarlo::setupRegime(int n, const Analytics &analytics,
 /*-----------------------Compute Path Stats-----------------------------*/
 void MonteCarlo::computePathStat(int n, double startingBalance) {
   double balance = startingBalance;
-
   double maxDrawDown{0}; // Drawdown_t = (Peak_t-V_t)/Peak_t
   double peak{balance};
   double trough{balance};
 
   auto &tradePath = sampledTrades[n];
+
+  if (tradePath.empty()) {
+    throw std::logic_error("empty sampled trade path");
+  }
 
   double sumReturns{0};
 
