@@ -2,8 +2,10 @@
 #include "analytics.h"
 #include "rollingwindow.h"
 #include <algorithm>
+#include <cstddef>
 #include <iterator>
 #include <limits>
+#include <optional>
 #include <random>
 #include <stdexcept>
 #include <thread>
@@ -327,10 +329,49 @@ void MonteCarlo::computeAllPathStatParallel(double startingBalance) {
   }
 }
 
-void MonteCarlo::reportAggregateStats() const {
+// allow passing in std::vector<SampleOutcome>* outcomes for testing
+void MonteCarlo::computeAggregateStats(
+    const std::vector<SampleOutcome> &outcomesToCompute) {
+  int n = outcomesToCompute.size();
+  double total = n;
+  if (total == 0) {
+    throw std::logic_error("outcomes is empty");
+  }
+
   int loseMoney = 0, MDD10 = 0, MDD20 = 0, MDD30 = 0, MDD50 = 0, ruin = 0;
 
-  for (auto &sampleOutcome : outcomes) {
-    if (sampleOutcome.balance)
+  for (const auto &sampleOutcome : outcomesToCompute) {
+    int balance = sampleOutcome.balance;
+    int mdd = sampleOutcome.maxDrawdown;
+    if (balance < startingBalance_) ++loseMoney;
+    if (mdd >= 0.1) ++MDD10;
+    if (mdd >= 0.2) ++MDD20;
+    if (mdd >= 0.3) ++MDD30;
+    if (mdd >= 0.5) ++MDD50;
+    if (mdd >= 1) {
+      ++ruin;
+    }
   }
+
+  aggregateStats.probLoseMoney = loseMoney / total;
+  aggregateStats.probRuin = ruin / total;
+  aggregateStats.propDrawdownExceed[0.1] = MDD10 / total;
+  aggregateStats.propDrawdownExceed[0.2] = MDD20 / total;
+  aggregateStats.propDrawdownExceed[0.3] = MDD30 / total;
+  aggregateStats.propDrawdownExceed[0.5] = MDD50 / total;
+
+  fillDistribution(
+      outcomesToCompute, [](const SampleOutcome &x) { return x.maxDrawdown; },
+      aggregateStats.maxDrawdownDistribution);
+
+  fillDistribution(
+      outcomesToCompute, [](const SampleOutcome &x) { return x.balance; },
+      aggregateStats.balanceDistribution);
+
+  fillDistribution(
+      outcomesToCompute,
+      [](const SampleOutcome &x) { return x.meanTradeReturn; },
+      aggregateStats.meanTradeReturDistribution);
 }
+
+void MonteCarlo::reportAggregateStats() const {}

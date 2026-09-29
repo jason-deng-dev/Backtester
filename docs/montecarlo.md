@@ -176,11 +176,32 @@ void computePathStatistics(double startingBalance);
 for each of path in std::vector<std::vector<SampledTrade>> sampledTrades
 
 produce
-struct Outcome{
-  peak, trough, end account balance, drawdown
+struct SampleOutcome{
+  peak, trough, balance, maxDrawdown, meanTradeReturn
 }
 and store in 
 std::vector<Outcome> outcomes;
+
+Probabilities
+- P(final < startingBalance) = prob of losing money
+- P(maxDrawDown > threshhold) for 10/20/30/50% = prob of ruin tiers
+- P(final < 0) 
+  
+max drawdown distributions
+- median DD
+- p95 DD (worst realistic)
+- worst DD
+- mean DD
+  
+ending balance/ total return distributions: 
+- p5, p25, p50, p75, p95
+- mean
+- std of outcomes[i].balance
+
+EV per trade, percentiles
+
+
+
 
 # Regime Monte Carlo
 

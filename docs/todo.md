@@ -15,6 +15,8 @@
 - [x] have sampleTrades pass positionRecords directly to sampleTrade
 - [x] package regime data into struct
 - [x] refactor reused code in sampleTradeRegime... into private helper function
+- [x] compute aggregate stats
+
 
 
 - [x] Backtester
