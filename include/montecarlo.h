@@ -127,6 +127,8 @@ public:
   computeAggregateStats(const std::vector<SampleOutcome> &outcomesToCompute);
   void reportAggregateStats() const;
 
+  const AggregateStats &getAggregateStats() const { return aggregateStats; }
+
   /*-----------------------Regime classification-----------------------------*/
   void classifyRegime(const State &state, double volPercentile = 0.75,
                       double calmPercentile = 0.6, int returnLookback = 20,
